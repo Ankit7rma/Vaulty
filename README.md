@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vaulty
 
-## Getting Started
+A zero-knowledge password manager. All encryption and decryption happen in your
+browser; the server only ever stores opaque encrypted blobs. Even a full
+database leak reveals nothing usable.
 
-First, run the development server:
+> Portfolio flagship demonstrating applied cryptography + secure full-stack
+> engineering. See [PRD.md](PRD.md) for the full product spec.
+
+## Security model (the core idea)
+
+Two independent passwords:
+
+- **Account password** authenticates you to the server, which stores only an
+  argon2/bcrypt hash and issues a JWT session. It proves identity and can never
+  decrypt anything.
+- **Master password** never leaves the browser. It is stretched with Argon2id
+  (PBKDF2 fallback) into a 256-bit AES-GCM key held only in memory. Every item
+  is encrypted client-side with a fresh random 12-byte IV before it is sent.
+
+Master-password correctness is verified client-side by decrypting a stored
+"check blob", never by sending anything to the server.
+
+## Tech stack
+
+- Next.js 16 (App Router) + TypeScript + React 19
+- Web Crypto API (`crypto.subtle`) + `hash-wasm` (Argon2id)
+- Tailwind CSS v4 + shadcn/ui
+- PostgreSQL + Prisma ORM
+- Vitest (unit) + Playwright (E2E)
+- Deploy: Vercel + Neon; local Postgres via Docker Compose; CI via GitHub Actions
+
+## Getting started
+
+Prerequisites: Node 22 (see `.nvmrc`) and Docker.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+nvm use                 # Node 22
+npm install
+cp env.example .env     # then edit values
+docker compose up -d    # local Postgres
+npm run db:migrate      # create tables
+npm run dev             # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Script | Purpose |
+| --- | --- |
+| `npm run dev` | Dev server |
+| `npm run build` / `start` | Production build / serve |
+| `npm run lint` / `typecheck` | ESLint / TypeScript |
+| `npm test` / `test:watch` | Vitest unit tests |
+| `npm run e2e` | Playwright E2E |
+| `npm run db:migrate` / `db:studio` | Prisma migrate / studio |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Notes
 
-## Learn More
+- Prisma is pinned to the 6.x line: Prisma 7 removed the classic
+  `datasource.url` in favor of driver adapters. `npm audit` reports 3 high
+  findings from `deepmerge-ts`, a transitive dependency of the Prisma **CLI**
+  (build-time only). `@prisma/client`, the sole runtime Prisma package, has zero
+  dependencies, so nothing vulnerable ships in the deployed bundle. These clear
+  once Prisma bumps `deepmerge-ts` upstream.
 
-To learn more about Next.js, take a look at the following resources:
+## Status
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Milestone 0 (scaffold + tooling) complete. Next up: the crypto module
+(Milestone 2) with round-trip tests, before any vault UI. Build order is tracked
+in [PRD.md](PRD.md#12-milestones-build-order).

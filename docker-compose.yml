@@ -1,0 +1,23 @@
+# Local Postgres for development. Production uses Neon (managed).
+# Start with:  docker compose up -d
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: vaulty-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vaulty
+      POSTGRES_PASSWORD: vaulty
+      POSTGRES_DB: vaulty
+    ports:
+      - '5432:5432'
+    volumes:
+      - vaulty-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U vaulty -d vaulty']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  vaulty-db-data:

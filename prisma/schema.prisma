@@ -1,0 +1,48 @@
+// Vaulty data model. The server stores ONLY opaque encrypted blobs.
+// It never sees plaintext item data, the master password, or the vault key.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String      @id @default(cuid())
+  email       String      @unique
+  // Server-side hash of the ACCOUNT password (argon2/bcrypt). Proves identity
+  // only; it can never decrypt vault data.
+  accountHash String
+  // Per-user salt (base64) used client-side to derive the master key. Public by
+  // design: a salt is not a secret, it only prevents precomputation.
+  kdfSalt     String
+  // "Check blob": ciphertext + iv that only decrypts if the derived master key
+  // is correct. Master-password correctness is verified client-side against
+  // this, never by sending anything to the server. Null until master set.
+  verifyBlob  String?
+  verifyIv    String?
+  // Non-sensitive client preferences (auto-lock timeout, clipboard clear, etc.).
+  settings    Json        @default("{}")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  items       VaultItem[]
+}
+
+model VaultItem {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Plaintext category hint for list rendering/icons only (e.g. "login",
+  // "note"). All actual field values (including the title) live encrypted
+  // inside `cipher`. Same tradeoff Bitwarden makes.
+  type      String
+  cipher    String   // base64 AES-GCM ciphertext of the full item payload
+  iv        String   // base64 12-byte per-item random IV
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}

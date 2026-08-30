@@ -16,12 +16,20 @@ model User {
   // Server-side hash of the ACCOUNT password (argon2/bcrypt). Proves identity
   // only; it can never decrypt vault data.
   accountHash String
+  // The following KDF + check-blob fields are all set during master-password
+  // onboarding (a step after signup), so they are null until then. A user with
+  // a null kdfSalt has not yet set up their vault.
+  //
   // Per-user salt (base64) used client-side to derive the master key. Public by
   // design: a salt is not a secret, it only prevents precomputation.
-  kdfSalt     String
+  kdfSalt     String?
+  // Which KDF + parameters were used, so derivation stays reproducible even if
+  // defaults change later. e.g. kdfName = "argon2id".
+  kdfName     String?
+  kdfParams   Json?
   // "Check blob": ciphertext + iv that only decrypts if the derived master key
   // is correct. Master-password correctness is verified client-side against
-  // this, never by sending anything to the server. Null until master set.
+  // this, never by sending anything to the server.
   verifyBlob  String?
   verifyIv    String?
   // Non-sensitive client preferences (auto-lock timeout, clipboard clear, etc.).

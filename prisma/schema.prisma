@@ -54,3 +54,15 @@ model VaultItem {
 
   @@index([userId])
 }
+
+// A one-time, expiring share of a single item. The ciphertext is encrypted with
+// a random key that lives ONLY in the share URL's fragment, so the server can
+// never read it. The row is deleted the first time it is fetched.
+model Share {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  cipher    String
+  iv        String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}

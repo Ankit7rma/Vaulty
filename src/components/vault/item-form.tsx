@@ -10,24 +10,48 @@ import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { CopyButton } from './copy-button';
 import { PasswordGenerator } from './password-generator';
 import { PasswordStrengthMeter } from './password-strength-meter';
-import type { ItemFields, ItemType, VaultItem } from '@/lib/vault/items';
+import { BreachCheck } from './breach-check';
+import { TotpCode } from './totp-code';
+import { ShareItem } from './share-item';
+import { isValidTotpSecret } from '@/lib/vault/totp';
+import type {
+  ItemFields,
+  ItemType,
+  LoginFields,
+  VaultItem,
+} from '@/lib/vault/items';
 
 function initialValues(type: ItemType, item?: VaultItem): Record<string, string> {
-  if (item) return { ...item.fields };
+  if (item?.type === 'login') {
+    return {
+      title: item.fields.title,
+      username: item.fields.username,
+      password: item.fields.password,
+      url: item.fields.url,
+      notes: item.fields.notes,
+      totp: item.fields.totp ?? '',
+    };
+  }
+  if (item?.type === 'note') {
+    return { title: item.fields.title, body: item.fields.body };
+  }
   return type === 'login'
-    ? { title: '', username: '', password: '', url: '', notes: '' }
+    ? { title: '', username: '', password: '', url: '', notes: '', totp: '' }
     : { title: '', body: '' };
 }
 
 function buildFields(type: ItemType, v: Record<string, string>): ItemFields {
   if (type === 'login') {
-    return {
+    const fields: LoginFields = {
       title: v.title ?? '',
       username: v.username ?? '',
       password: v.password ?? '',
       url: v.url ?? '',
       notes: v.notes ?? '',
     };
+    // Only persist a TOTP secret when one was entered.
+    if (v.totp?.trim()) fields.totp = v.totp.trim();
+    return fields;
   }
   return { title: v.title ?? '', body: v.body ?? '' };
 }
@@ -139,6 +163,7 @@ export function ItemForm({
               <CopyButton value={values.password ?? ''} label="password" />
             </div>
             <PasswordStrengthMeter password={values.password ?? ''} />
+            <BreachCheck password={values.password ?? ''} />
           </div>
 
           <div className="space-y-2">
@@ -174,6 +199,20 @@ export function ItemForm({
               rows={3}
             />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="totp">One-time password (2FA)</Label>
+            <Input
+              id="totp"
+              value={values.totp ?? ''}
+              onChange={(e) => set('totp', e.target.value)}
+              placeholder="Base32 secret or otpauth:// URI"
+              autoComplete="off"
+            />
+            {isValidTotpSecret(values.totp ?? '') && (
+              <TotpCode secret={values.totp ?? ''} />
+            )}
+          </div>
         </>
       ) : (
         <div className="space-y-2">
@@ -186,6 +225,8 @@ export function ItemForm({
           />
         </div>
       )}
+
+      {item && <ShareItem type={type} fields={buildFields(type, values)} />}
 
       <DialogFooter>
         {item && (

@@ -45,3 +45,12 @@ export const itemInputSchema = z.object({
 });
 
 export type ItemInput = z.infer<typeof itemInputSchema>;
+
+/** Validation for creating a one-time share (opaque ciphertext only). */
+export const shareInputSchema = z.object({
+  cipher: z.string().min(1).max(200_000),
+  iv: z.string().min(1).max(1_000),
+  expiresInHours: z.number().int().min(1).max(168).optional(),
+});
+
+export type ShareInput = z.infer<typeof shareInputSchema>;

@@ -14,6 +14,9 @@ export interface LoginFields {
   password: string;
   url: string;
   notes: string;
+  // Optional TOTP (2FA) secret, base32 or otpauth:// URI. Encrypted like every
+  // other field; older items simply won't have it.
+  totp?: string;
 }
 
 export interface NoteFields {

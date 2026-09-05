@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { SignOutButton } from '@/components/auth/sign-out-button';
 import { useVaultKey } from '@/lib/vault/vault-key-context';
+import { VaultApp } from './vault-app';
 
 /**
  * The unlocked vault surface. The in-memory key is the source of truth for
@@ -41,17 +42,7 @@ export function VaultShell({ email }: { email: string }) {
           <SignOutButton />
         </div>
       </header>
-      <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-16 text-center">
-        <h1 className="text-2xl font-semibold">Your vault is unlocked</h1>
-        <p className="mt-2 text-muted-foreground">
-          The encryption key is held only in memory. Locking, signing out, or
-          refreshing this tab wipes it.
-        </p>
-        <p className="mt-8 rounded-lg border border-dashed p-8 text-sm text-muted-foreground">
-          Vault items arrive in Phase 4: create, encrypt client-side, list, and
-          decrypt on load.
-        </p>
-      </main>
+      <VaultApp />
     </div>
   );
 }

@@ -24,7 +24,7 @@ test('signup -> onboard -> lock -> unlock', async ({ page }) => {
   // Vault is unlocked.
   await expect(page).toHaveURL(/\/vault$/)
   await expect(
-    page.getByRole('heading', { name: 'Your vault is unlocked' }),
+    page.getByRole('button', { name: 'Add login' }),
   ).toBeVisible()
 
   // Lock wipes the in-memory key and returns to unlock.
@@ -42,7 +42,7 @@ test('signup -> onboard -> lock -> unlock', async ({ page }) => {
   await page.getByRole('button', { name: 'Unlock' }).click()
   await expect(page).toHaveURL(/\/vault$/)
   await expect(
-    page.getByRole('heading', { name: 'Your vault is unlocked' }),
+    page.getByRole('button', { name: 'Add login' }),
   ).toBeVisible()
 
   // A refresh drops the in-memory key, so the vault re-locks.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { onboardSchema } from './schemas'
+import { onboardSchema, itemInputSchema } from './schemas'
 
 const argon2Payload = {
   kdfName: 'argon2id',
@@ -42,5 +42,23 @@ describe('onboardSchema', () => {
     expect(
       onboardSchema.safeParse({ ...argon2Payload, verifyBlob: '' }).success,
     ).toBe(false)
+  })
+})
+
+describe('itemInputSchema', () => {
+  const valid = { type: 'login', cipher: 'Y2lwaGVy', iv: 'aXY=' }
+
+  it('accepts a valid login and note item', () => {
+    expect(itemInputSchema.safeParse(valid).success).toBe(true)
+    expect(itemInputSchema.safeParse({ ...valid, type: 'note' }).success).toBe(true)
+  })
+
+  it('rejects an unknown type', () => {
+    expect(itemInputSchema.safeParse({ ...valid, type: 'card' }).success).toBe(false)
+  })
+
+  it('rejects empty cipher or iv', () => {
+    expect(itemInputSchema.safeParse({ ...valid, cipher: '' }).success).toBe(false)
+    expect(itemInputSchema.safeParse({ ...valid, iv: '' }).success).toBe(false)
   })
 })

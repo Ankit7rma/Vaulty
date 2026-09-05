@@ -35,3 +35,13 @@ export const onboardSchema = z.discriminatedUnion('kdfName', [
 ]);
 
 export type OnboardInput = z.infer<typeof onboardSchema>;
+
+/** Validation for creating/updating a vault item. Only opaque data is accepted. */
+export const itemInputSchema = z.object({
+  type: z.enum(['login', 'note']),
+  // Ciphertext can be sizeable for long notes; bound it to reject abuse.
+  cipher: z.string().min(1).max(200_000),
+  iv: z.string().min(1).max(1_000),
+});
+
+export type ItemInput = z.infer<typeof itemInputSchema>;

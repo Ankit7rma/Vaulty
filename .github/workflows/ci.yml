@@ -37,3 +37,44 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://vaulty:vaulty@localhost:5432/vaulty
+      JWT_SECRET: ci-e2e-placeholder-not-a-real-secret
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vaulty
+          POSTGRES_PASSWORD: vaulty
+          POSTGRES_DB: vaulty
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vaulty -d vaulty"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run migrations
+        run: npm run db:deploy
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E tests
+        run: npm run e2e

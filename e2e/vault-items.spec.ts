@@ -38,6 +38,15 @@ test('add, persist, edit, and delete a login item', async ({ page }) => {
   await expect(page).toHaveURL(/\/vault$/)
   await expect(page.getByText('GitHub')).toBeVisible()
 
+  // Search filters the decrypted list in memory.
+  await page.getByPlaceholder('Search').fill('git')
+  await expect(page.getByText('GitHub')).toBeVisible()
+  await page.getByPlaceholder('Search').fill('zzz')
+  await expect(page.getByText('GitHub')).toHaveCount(0)
+  await expect(page.getByText('No matches')).toBeVisible()
+  await page.getByPlaceholder('Search').fill('')
+  await expect(page.getByText('GitHub')).toBeVisible()
+
   // Edit the title.
   await page.getByRole('button', { name: /GitHub/ }).click()
   await page.getByLabel('Title').fill('GitHub (work)')

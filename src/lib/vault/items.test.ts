@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest'
 import {
   encryptFields,
   decryptRecord,
+  filterItems,
   type ItemRecord,
   type ItemType,
   type LoginFields,
   type NoteFields,
+  type VaultItem,
 } from './items'
 import type { EncryptedBlob } from '@/lib/crypto'
 
@@ -58,5 +60,43 @@ describe('item codec', () => {
     const other = await randomKey()
     const blob = await encryptFields(key, { title: 't', body: 'b' })
     await expect(decryptRecord(other, recordFrom('note', blob))).rejects.toThrow()
+  })
+})
+
+describe('filterItems', () => {
+  const base = { createdAt: '', updatedAt: '' }
+  const items: VaultItem[] = [
+    {
+      ...base,
+      id: '1',
+      type: 'login',
+      fields: { title: 'GitHub', username: 'octocat', password: '', url: '', notes: '' },
+    },
+    { ...base, id: '2', type: 'note', fields: { title: 'Wifi password', body: '' } },
+    {
+      ...base,
+      id: '3',
+      type: 'login',
+      fields: { title: 'Bank', username: 'alice@example.com', password: '', url: '', notes: '' },
+    },
+  ]
+
+  it('returns everything for an empty/whitespace query', () => {
+    expect(filterItems(items, '')).toHaveLength(3)
+    expect(filterItems(items, '   ')).toHaveLength(3)
+  })
+
+  it('matches title case-insensitively', () => {
+    expect(filterItems(items, 'git').map((i) => i.id)).toEqual(['1'])
+    expect(filterItems(items, 'WIFI').map((i) => i.id)).toEqual(['2'])
+  })
+
+  it('matches login username but not on notes', () => {
+    expect(filterItems(items, 'octo').map((i) => i.id)).toEqual(['1'])
+    expect(filterItems(items, 'alice@').map((i) => i.id)).toEqual(['3'])
+  })
+
+  it('returns nothing when there is no match', () => {
+    expect(filterItems(items, 'zzz')).toHaveLength(0)
   })
 })

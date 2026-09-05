@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { CopyButton } from './copy-button';
 import { PasswordGenerator } from './password-generator';
+import { PasswordStrengthMeter } from './password-strength-meter';
 import type { ItemFields, ItemType, VaultItem } from '@/lib/vault/items';
 
 function initialValues(type: ItemType, item?: VaultItem): Record<string, string> {
@@ -137,6 +138,7 @@ export function ItemForm({
               />
               <CopyButton value={values.password ?? ''} label="password" />
             </div>
+            <PasswordStrengthMeter password={values.password ?? ''} />
           </div>
 
           <div className="space-y-2">

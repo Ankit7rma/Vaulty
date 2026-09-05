@@ -44,6 +44,20 @@ export type VaultItem =
   | (BaseItem & { type: 'login'; fields: LoginFields })
   | (BaseItem & { type: 'note'; fields: NoteFields });
 
+/**
+ * Case-insensitive search over already-decrypted items. Matches title (all
+ * types) and username (logins). Runs entirely in memory; the server never sees
+ * the query or any plaintext.
+ */
+export function filterItems(items: VaultItem[], query: string): VaultItem[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return items;
+  return items.filter((item) => {
+    if (item.fields.title.toLowerCase().includes(q)) return true;
+    return item.type === 'login' && item.fields.username.toLowerCase().includes(q);
+  });
+}
+
 export async function encryptFields(
   key: CryptoKey,
   fields: ItemFields,

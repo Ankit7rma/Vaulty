@@ -3,22 +3,21 @@
 import { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useClipboard } from '@/lib/vault/use-clipboard';
 
 /**
- * Copies a secret to the clipboard with brief "copied" feedback. Clipboard
- * auto-clear lands in Phase 5.
+ * Copies a secret with brief "copied" feedback. The clipboard is auto-cleared
+ * after the configured delay (see useClipboard).
  */
 export function CopyButton({ value, label }: { value: string; label: string }) {
+  const copy = useClipboard();
   const [copied, setCopied] = useState(false);
 
   async function onCopy() {
     if (!value) return;
-    try {
-      await navigator.clipboard.writeText(value);
+    if (await copy(value)) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard can be blocked (e.g. no permission); ignore.
     }
   }
 

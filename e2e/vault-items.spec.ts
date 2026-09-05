@@ -22,7 +22,10 @@ test('add, persist, edit, and delete a login item', async ({ page }) => {
   await page.getByRole('button', { name: 'Add login' }).click()
   await page.getByLabel('Title').fill('GitHub')
   await page.getByLabel('Username', { exact: true }).fill('octocat')
-  await page.getByLabel('Password', { exact: true }).fill('s3cr3t-pw')
+  // Fill the password with the generator (proves the generator wiring).
+  await page.getByRole('button', { name: 'Generate password' }).click()
+  await page.getByRole('button', { name: 'Use password' }).click()
+  await expect(page.getByLabel('Password', { exact: true })).not.toHaveValue('')
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByText('GitHub')).toBeVisible()
   await expect(page.getByText('octocat')).toBeVisible()

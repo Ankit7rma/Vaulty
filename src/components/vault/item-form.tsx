@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DialogClose, DialogFooter } from '@/components/ui/dialog';
 import { CopyButton } from './copy-button';
+import { PasswordGenerator } from './password-generator';
 import type { ItemFields, ItemType, VaultItem } from '@/lib/vault/items';
 
 function initialValues(type: ItemType, item?: VaultItem): Record<string, string> {
@@ -128,6 +129,12 @@ export function ItemForm({
               >
                 {showPassword ? <EyeOff /> : <Eye />}
               </Button>
+              <PasswordGenerator
+                onUse={(pw) => {
+                  set('password', pw);
+                  setShowPassword(true);
+                }}
+              />
               <CopyButton value={values.password ?? ''} label="password" />
             </div>
           </div>

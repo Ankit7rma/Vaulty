@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { SignOutButton } from '@/components/auth/sign-out-button';
-import { useVaultKey } from '@/lib/vault/vault-key-context';
+import { SettingsDialog } from './settings-dialog';
 import { VaultApp } from './vault-app';
+import { useVaultKey } from '@/lib/vault/vault-key-context';
+import { useSettings } from '@/lib/settings/settings-context';
+import { useAutoLock } from '@/lib/vault/use-auto-lock';
 
 /**
  * The unlocked vault surface. The in-memory key is the source of truth for
@@ -16,17 +19,21 @@ import { VaultApp } from './vault-app';
 export function VaultShell({ email }: { email: string }) {
   const router = useRouter();
   const { isUnlocked, lock } = useVaultKey();
+  const { autoLockMinutes } = useSettings();
+
+  const handleLock = useCallback(() => {
+    lock();
+    router.replace('/unlock');
+  }, [lock, router]);
 
   useEffect(() => {
     if (!isUnlocked) router.replace('/unlock');
   }, [isUnlocked, router]);
 
-  if (!isUnlocked) return null;
+  // Auto-lock on inactivity, only while unlocked.
+  useAutoLock(isUnlocked ? autoLockMinutes : 0, handleLock);
 
-  function onLock() {
-    lock();
-    router.replace('/unlock');
-  }
+  if (!isUnlocked) return null;
 
   return (
     <div className="flex min-h-svh flex-col">
@@ -36,7 +43,8 @@ export function VaultShell({ email }: { email: string }) {
           <span className="text-sm text-muted-foreground">{email}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={onLock}>
+          <SettingsDialog />
+          <Button variant="outline" onClick={handleLock}>
             Lock
           </Button>
           <SignOutButton />

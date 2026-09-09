@@ -101,7 +101,8 @@ export function ItemForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
       {error && (
         <p className="text-sm text-destructive" role="alert">
           {error}
@@ -227,8 +228,9 @@ export function ItemForm({
       )}
 
       {item && <ShareItem type={type} fields={buildFields(type, values)} />}
+      </div>
 
-      <DialogFooter>
+      <DialogFooter className="m-0 shrink-0">
         {item && (
           <Button
             type="button"

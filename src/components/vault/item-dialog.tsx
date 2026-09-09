@@ -38,10 +38,10 @@ export function ItemDialog({
         if (!open) onClose();
       }}
     >
-      <DialogContent>
+      <DialogContent className="flex max-h-[calc(100svh-2rem)] flex-col gap-0 p-0 sm:max-w-lg">
         {editing && (
           <>
-            <DialogHeader>
+            <DialogHeader className="border-b p-4">
               <DialogTitle>{heading(editing)}</DialogTitle>
               <DialogDescription>
                 Everything is encrypted in your browser before it is saved.

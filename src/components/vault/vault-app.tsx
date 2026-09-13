@@ -10,6 +10,9 @@ import { filterItems, type ItemFields, type ItemType } from '@/lib/vault/items';
 import { ItemList } from './item-list';
 import { ItemDialog, type EditingItem } from './item-dialog';
 import { CommandPalette } from './command-palette';
+import { ShortcutsDialog } from './shortcuts-dialog';
+
+const SEARCH_INPUT_ID = 'vaulty-search';
 
 interface VaultAppProps {
   onLock: () => void;
@@ -34,21 +37,66 @@ function VaultAppInner({
   const [editing, setEditing] = useState<EditingItem | null>(null);
   const [query, setQuery] = useState('');
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   const filtered = useMemo(() => filterItems(items, query), [items, query]);
 
-  // Global Cmd/Ctrl+K opens the command palette. Ignored while typing in an
-  // input so it doesn't steal keystrokes from other combinations.
+  // Global keyboard shortcuts. Anything without a modifier is ignored while
+  // the user is typing in an input, textarea, or contenteditable so it never
+  // steals a keystroke that was meant for the field.
   useEffect(() => {
+    function isTypingContext(el: EventTarget | null): boolean {
+      if (!(el instanceof HTMLElement)) return false;
+      if (el.isContentEditable) return true;
+      const tag = el.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+    }
+
+    function focusSearch() {
+      const el = document.getElementById(SEARCH_INPUT_ID);
+      if (el instanceof HTMLInputElement) {
+        el.focus();
+        el.select();
+      }
+    }
+
     function onKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      const hasMod = e.metaKey || e.ctrlKey;
+      const key = e.key;
+
+      // Cmd/Ctrl+K — command palette (also works while typing).
+      if (hasMod && key.toLowerCase() === 'k') {
         e.preventDefault();
         setPaletteOpen((v) => !v);
+        return;
+      }
+      // Cmd/Ctrl+L — lock the vault (also works while typing).
+      if (hasMod && key.toLowerCase() === 'l') {
+        e.preventDefault();
+        onLock();
+        return;
+      }
+
+      if (isTypingContext(e.target)) return;
+
+      // Bare-key shortcuts only fire outside inputs.
+      if (key === '/') {
+        e.preventDefault();
+        focusSearch();
+      } else if (key === '?') {
+        e.preventDefault();
+        setShortcutsOpen(true);
+      } else if (key === 'n' && !e.shiftKey) {
+        e.preventDefault();
+        setEditing({ type: 'login' });
+      } else if (key === 'N' && e.shiftKey) {
+        e.preventDefault();
+        setEditing({ type: 'note' });
       }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [onLock]);
 
   async function handleSave(type: ItemType, fields: ItemFields, id?: string) {
     if (id) await updateItem(id, type, fields);
@@ -101,8 +149,9 @@ function VaultAppInner({
           <div className="relative">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              id={SEARCH_INPUT_ID}
               type="search"
-              placeholder="Search"
+              placeholder="Search (press / to focus)"
               aria-label="Search items"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -141,6 +190,8 @@ function VaultAppInner({
         onLock={onLock}
         onSignOut={onSignOut}
       />
+
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </main>
   );
 }

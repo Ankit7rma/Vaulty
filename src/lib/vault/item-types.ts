@@ -26,7 +26,13 @@ import type { ItemType } from './items';
  * value declared here still lives inside the encrypted cipher blob.
  */
 
-export type FieldKind = 'text' | 'password' | 'textarea' | 'url' | 'date';
+export type FieldKind =
+  | 'text'
+  | 'password'
+  | 'textarea'
+  | 'url'
+  | 'date'
+  | 'file';
 
 export interface FieldSpec {
   /** Storage key inside CustomFields.values */
@@ -235,7 +241,10 @@ const FILE_SPEC: ItemTypeSpec = {
   shortLabel: 'File',
   description: 'Encrypted file stored in the vault.',
   icon: Paperclip,
-  fields: [],
+  fields: [
+    { name: 'file', label: 'File', kind: 'file', sensitive: true },
+    { name: 'notes', label: 'Notes', kind: 'textarea' },
+  ],
 };
 
 export const ITEM_TYPE_SPECS: Record<ItemType, ItemTypeSpec> = {

@@ -135,6 +135,13 @@ export const ITEM_TEMPLATES: ItemTemplate[] = [
     fields: { title: '', values: {} },
   },
   {
+    id: 'blank-file',
+    label: 'File attachment',
+    description: 'Upload a small file (up to 2 MB).',
+    type: 'file',
+    fields: { title: '', values: {} },
+  },
+  {
     id: 'recovery-codes',
     label: 'Recovery codes',
     description: '2FA backup codes for a service.',

@@ -3,11 +3,15 @@
 import { useState, type FormEvent } from 'react';
 import {
   Clock,
+  Download,
   ExternalLink,
   Eye,
   EyeOff,
+  Loader2,
   Star,
   Trash2,
+  Upload,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +23,12 @@ import { ShareItem } from './share-item';
 import { TagInput } from './tag-input';
 import { HistoryDialog } from './history-dialog';
 import { getTypeSpec, type FieldSpec } from '@/lib/vault/item-types';
+import {
+  decodeFilePayload,
+  downloadFile,
+  encodeFile,
+  formatBytes,
+} from '@/lib/vault/file-payload';
 import {
   normalizeTags,
   type CustomFields,
@@ -290,10 +300,122 @@ function CustomField({
     );
   }
 
+  if (field.kind === 'file') {
+    return (
+      <FileField
+        id={id}
+        label={field.label}
+        value={value}
+        onChange={onChange}
+      />
+    );
+  }
+
   return (
     <div className="space-y-2">
       <Label htmlFor={id}>{field.label}</Label>
       <Input {...shared} />
+    </div>
+  );
+}
+
+function FileField({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const payload = decodeFilePayload(value);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onFilePicked(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    // Reset the input so re-picking the same file still fires onChange.
+    e.target.value = '';
+    if (!file) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const encoded = await encodeFile(file);
+      onChange(JSON.stringify(encoded));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not read file.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function clear() {
+    onChange('');
+    setError(null);
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label}</Label>
+      {payload ? (
+        <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{payload.name}</p>
+            <p className="text-xs text-muted-foreground">
+              {payload.type || 'file'} · {formatBytes(payload.size)}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => downloadFile(payload)}
+            aria-label="Download file"
+            title="Download"
+          >
+            <Download />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={clear}
+            aria-label="Remove file"
+            title="Remove"
+          >
+            <X />
+          </Button>
+        </div>
+      ) : (
+        <label
+          htmlFor={id}
+          className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed bg-muted/20 px-3 py-3 text-sm text-muted-foreground hover:bg-muted/40"
+        >
+          {busy ? (
+            <Loader2 className="size-4 animate-spin" aria-hidden />
+          ) : (
+            <Upload className="size-4" aria-hidden />
+          )}
+          <span>{busy ? 'Encoding...' : 'Choose a file (up to 2 MB)'}</span>
+          <input
+            id={id}
+            type="file"
+            className="sr-only"
+            onChange={onFilePicked}
+            disabled={busy}
+          />
+        </label>
+      )}
+      {error && (
+        <p className="text-xs text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+      <p className="text-xs text-muted-foreground">
+        File is base64-encoded and stored inside the encrypted ciphertext.
+      </p>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { KeyRound, Star, StickyNote } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { isFavorite, type VaultItem } from '@/lib/vault/items';
 
 function subtitle(item: VaultItem): string {
@@ -12,22 +13,41 @@ export function ItemList({
   items,
   onOpen,
   onToggleFavorite,
+  selectedIds,
+  onToggleSelect,
 }: {
   items: VaultItem[];
   onOpen: (item: VaultItem) => void;
   onToggleFavorite: (item: VaultItem) => void;
+  selectedIds: Set<string>;
+  onToggleSelect: (item: VaultItem) => void;
 }) {
   return (
     <ul className="divide-y rounded-lg border">
       {items.map((item) => {
         const fav = isFavorite(item);
+        const selected = selectedIds.has(item.id);
         return (
           <li key={item.id}>
-            <div className="flex items-center gap-1 pr-2 hover:bg-muted">
+            <div
+              className={`flex items-center gap-1 pr-2 hover:bg-muted ${
+                selected ? 'bg-primary/5' : ''
+              }`}
+            >
+              <label
+                className="flex size-8 shrink-0 cursor-pointer items-center justify-center pl-2"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Checkbox
+                  checked={selected}
+                  onCheckedChange={() => onToggleSelect(item)}
+                  aria-label={`Select ${item.fields.title || 'item'}`}
+                />
+              </label>
               <button
                 type="button"
                 onClick={() => onOpen(item)}
-                className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left"
+                className="flex min-w-0 flex-1 items-center gap-3 py-3 text-left"
               >
                 {item.type === 'login' ? (
                   <KeyRound className="shrink-0 text-muted-foreground" />

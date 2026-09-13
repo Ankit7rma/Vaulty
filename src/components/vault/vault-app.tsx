@@ -19,6 +19,8 @@ import { ItemList } from './item-list';
 import { ItemDialog, type EditingItem } from './item-dialog';
 import { CommandPalette } from './command-palette';
 import { ShortcutsDialog } from './shortcuts-dialog';
+import { BulkActionBar } from './bulk-action-bar';
+import { normalizeTags } from '@/lib/vault/items';
 
 const SEARCH_INPUT_ID = 'vaulty-search';
 
@@ -47,6 +49,7 @@ function VaultAppInner({
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
 
   const allTags = useMemo(() => collectTags(items), [items]);
 
@@ -76,6 +79,41 @@ function VaultAppInner({
   async function handleToggleFavorite(item: VaultItem) {
     const nextFields = { ...item.fields, favorite: !isFavorite(item) };
     await updateItem(item.id, item.type, nextFields as ItemFields);
+  }
+
+  function toggleSelect(item: VaultItem) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(item.id)) next.delete(item.id);
+      else next.add(item.id);
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  async function handleBulkDelete() {
+    const targets = items.filter((i) => selectedIds.has(i.id));
+    // Fire deletes sequentially so a partial failure still leaves the earlier
+    // successes reflected in the UI and we do not overwhelm the API.
+    for (const item of targets) {
+      await deleteItem(item.id);
+    }
+    clearSelection();
+  }
+
+  async function handleBulkAddTags(newTags: string[]) {
+    const targets = items.filter((i) => selectedIds.has(i.id));
+    for (const item of targets) {
+      const merged = normalizeTags([...getTags(item), ...newTags]);
+      await updateItem(item.id, item.type, {
+        ...item.fields,
+        tags: merged,
+      } as ItemFields);
+    }
+    clearSelection();
   }
 
   // Global keyboard shortcuts. Anything without a modifier is ignored while
@@ -129,6 +167,9 @@ function VaultAppInner({
       } else if (key === 'N' && e.shiftKey) {
         e.preventDefault();
         setEditing({ type: 'note' });
+      } else if (key === 'Escape') {
+        // ESC clears the current bulk selection (dialogs handle their own ESC).
+        setSelectedIds((prev) => (prev.size > 0 ? new Set() : prev));
       }
     }
     window.addEventListener('keydown', onKey);
@@ -243,6 +284,8 @@ function VaultAppInner({
               items={filtered}
               onOpen={(item) => setEditing({ type: item.type, item })}
               onToggleFavorite={handleToggleFavorite}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
             />
           )}
         </div>
@@ -267,6 +310,13 @@ function VaultAppInner({
       />
 
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+
+      <BulkActionBar
+        count={selectedIds.size}
+        onClear={clearSelection}
+        onAddTags={handleBulkAddTags}
+        onDelete={handleBulkDelete}
+      />
     </main>
   );
 }

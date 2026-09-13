@@ -58,6 +58,13 @@ export const ITEM_TEMPLATES: ItemTemplate[] = [
     fields: { title: '', values: {} },
   },
   {
+    id: 'blank-ssh-key',
+    label: 'SSH key',
+    description: 'Public and private key material.',
+    type: 'sshKey',
+    fields: { title: '', values: {} },
+  },
+  {
     id: 'email-account',
     label: 'Email account',
     description: 'Pre-tagged with #email.',

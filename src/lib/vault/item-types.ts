@@ -124,7 +124,15 @@ const SSH_KEY_SPEC: ItemTypeSpec = {
   shortLabel: 'SSH',
   description: 'Public and private key material.',
   icon: TerminalSquare,
-  fields: [],
+  fields: [
+    { name: 'keyName', label: 'Key name', kind: 'text', placeholder: 'e.g. laptop-github' },
+    { name: 'algorithm', label: 'Algorithm', kind: 'text', placeholder: 'ed25519, rsa-4096, ...' },
+    { name: 'publicKey', label: 'Public key', kind: 'textarea' },
+    { name: 'privateKey', label: 'Private key', kind: 'textarea', sensitive: true },
+    { name: 'passphrase', label: 'Passphrase', kind: 'password' },
+    { name: 'fingerprint', label: 'Fingerprint', kind: 'text' },
+    { name: 'notes', label: 'Notes', kind: 'textarea' },
+  ],
 };
 const API_KEY_SPEC: ItemTypeSpec = {
   id: 'apiKey',

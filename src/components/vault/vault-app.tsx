@@ -27,6 +27,7 @@ import {
   ChangelogDialog,
   useChangelogHasUpdates,
 } from './changelog-dialog';
+import { OnboardingTour, useTourCompleted } from './onboarding-tour';
 import { normalizeTags } from '@/lib/vault/items';
 import { LayoutTemplate, ShieldCheck, Sparkles } from 'lucide-react';
 
@@ -63,6 +64,16 @@ function VaultAppInner({
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const changelogHasUpdates = useChangelogHasUpdates();
+  const tourCompleted = useTourCompleted();
+  // "manual" is set true if the user re-opens the tour after dismissing it;
+  // "dismissed" is set when they close the auto-opened tour in this session.
+  // We derive `tourOpen` from these plus the persisted completion flag so we
+  // never need a setState-in-effect to reflect storage into state.
+  const [tourDismissedThisSession, setTourDismissedThisSession] =
+    useState(false);
+  const [tourManualOpen, setTourManualOpen] = useState(false);
+  const tourOpen =
+    tourManualOpen || (!tourCompleted && !tourDismissedThisSession);
 
   // Split active vs trashed once so both views work off the same source.
   const activeItems = useMemo(() => items.filter((i) => !isDeleted(i)), [items]);
@@ -465,6 +476,17 @@ function VaultAppInner({
       <ChangelogDialog
         open={changelogOpen}
         onOpenChange={setChangelogOpen}
+      />
+
+      <OnboardingTour
+        open={tourOpen}
+        onOpenChange={(v) => {
+          if (v) setTourManualOpen(true);
+          else {
+            setTourManualOpen(false);
+            setTourDismissedThisSession(true);
+          }
+        }}
       />
     </main>
   );

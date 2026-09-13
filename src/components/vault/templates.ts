@@ -51,6 +51,13 @@ export const ITEM_TEMPLATES: ItemTemplate[] = [
     fields: { title: '', values: {} },
   },
   {
+    id: 'blank-passport',
+    label: 'Passport',
+    description: 'Travel document details.',
+    type: 'passport',
+    fields: { title: '', values: {} },
+  },
+  {
     id: 'email-account',
     label: 'Email account',
     description: 'Pre-tagged with #email.',

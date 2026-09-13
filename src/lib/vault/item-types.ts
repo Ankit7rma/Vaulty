@@ -107,7 +107,16 @@ const PASSPORT_SPEC: ItemTypeSpec = {
   shortLabel: 'Passport',
   description: 'Travel document details.',
   icon: BookMarked,
-  fields: [],
+  fields: [
+    { name: 'fullName', label: 'Full name', kind: 'text' },
+    { name: 'number', label: 'Passport number', kind: 'password' },
+    { name: 'country', label: 'Country', kind: 'text' },
+    { name: 'nationality', label: 'Nationality', kind: 'text' },
+    { name: 'dateOfBirth', label: 'Date of birth', kind: 'text', placeholder: 'YYYY-MM-DD' },
+    { name: 'issuedOn', label: 'Issued on', kind: 'text', placeholder: 'YYYY-MM-DD' },
+    { name: 'expiresOn', label: 'Expires on', kind: 'text', placeholder: 'YYYY-MM-DD' },
+    { name: 'notes', label: 'Notes', kind: 'textarea' },
+  ],
 };
 const SSH_KEY_SPEC: ItemTypeSpec = {
   id: 'sshKey',

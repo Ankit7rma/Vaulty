@@ -4,6 +4,7 @@ import { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { SignOutButton } from '@/components/auth/sign-out-button';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { SettingsDialog } from './settings-dialog';
 import { VaultApp } from './vault-app';
 import { useVaultKey } from '@/lib/vault/vault-key-context';
@@ -43,6 +44,7 @@ export function VaultShell({ email }: { email: string }) {
           <span className="text-sm text-muted-foreground">{email}</span>
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <SettingsDialog />
           <Button variant="outline" onClick={handleLock}>
             Lock

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { KeyRound, ShieldCheck, EyeOff, Sparkles } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 type AuthShellProps = {
   title: string;
@@ -38,6 +39,10 @@ export function AuthShell({
   return (
     <main className="relative flex min-h-svh w-full flex-col overflow-hidden bg-background lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <BackgroundDecor />
+
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle />
+      </div>
 
       <section className="relative z-10 hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-primary via-primary to-primary/85 p-10 text-primary-foreground lg:flex xl:p-14">
         <HeroPattern />

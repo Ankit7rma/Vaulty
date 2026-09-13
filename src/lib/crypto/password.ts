@@ -4,6 +4,8 @@
  * modulo bias toward the start of a character set.
  */
 
+import { WORD_LIST } from './wordlist';
+
 export interface PasswordOptions {
   length: number;
   uppercase?: boolean;
@@ -86,4 +88,36 @@ export function generatePassword(options: PasswordOptions): string {
   }
 
   return chars.join('');
+}
+
+export interface PassphraseOptions {
+  words: number;
+  separator?: string;
+  capitalize?: boolean;
+  /** Append a random 1-4 digit number for a bit more entropy. */
+  includeNumber?: boolean;
+}
+
+/**
+ * Diceware-style passphrase. Each word is chosen uniformly from WORD_LIST
+ * with rejection sampling (no modulo bias). Default 5 words = ~45 bits.
+ */
+export function generatePassphrase(options: PassphraseOptions): string {
+  const { words } = options;
+  if (!Number.isInteger(words) || words < 2 || words > 12) {
+    throw new Error('words must be an integer between 2 and 12');
+  }
+  const separator = options.separator ?? '-';
+  const picks: string[] = [];
+  for (let i = 0; i < words; i++) {
+    let word = WORD_LIST[randomInt(WORD_LIST.length)];
+    if (options.capitalize) {
+      word = word[0].toUpperCase() + word.slice(1);
+    }
+    picks.push(word);
+  }
+  if (options.includeNumber) {
+    picks.push(String(randomInt(10_000)));
+  }
+  return picks.join(separator);
 }

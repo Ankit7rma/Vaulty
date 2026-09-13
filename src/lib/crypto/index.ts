@@ -32,5 +32,10 @@ export {
   encryptJson,
   decryptJson,
 } from './cipher';
-export { generatePassword, type PasswordOptions } from './password';
+export {
+  generatePassword,
+  generatePassphrase,
+  type PasswordOptions,
+  type PassphraseOptions,
+} from './password';
 export { createVerifyBlob, verifyKey, VERIFY_MARKER } from './verify';

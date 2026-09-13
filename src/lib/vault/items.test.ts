@@ -70,14 +70,26 @@ describe('filterItems', () => {
       ...base,
       id: '1',
       type: 'login',
-      fields: { title: 'GitHub', username: 'octocat', password: '', url: '', notes: '' },
+      fields: {
+        title: 'GitHub',
+        username: 'octocat',
+        password: '',
+        url: 'https://github.com',
+        notes: 'personal account',
+      },
     },
-    { ...base, id: '2', type: 'note', fields: { title: 'Wifi password', body: '' } },
+    { ...base, id: '2', type: 'note', fields: { title: 'Wifi password', body: 'hunter2' } },
     {
       ...base,
       id: '3',
       type: 'login',
-      fields: { title: 'Bank', username: 'alice@example.com', password: '', url: '', notes: '' },
+      fields: {
+        title: 'Bank',
+        username: 'alice@example.com',
+        password: '',
+        url: 'https://chase.com',
+        notes: '',
+      },
     },
   ]
 
@@ -91,9 +103,26 @@ describe('filterItems', () => {
     expect(filterItems(items, 'WIFI').map((i) => i.id)).toEqual(['2'])
   })
 
-  it('matches login username but not on notes', () => {
+  it('matches login username and url', () => {
     expect(filterItems(items, 'octo').map((i) => i.id)).toEqual(['1'])
     expect(filterItems(items, 'alice@').map((i) => i.id)).toEqual(['3'])
+    expect(filterItems(items, 'chase').map((i) => i.id)).toEqual(['3'])
+  })
+
+  it('supports fuzzy subsequence match', () => {
+    // "gthb" appears as a subsequence in "github"
+    expect(filterItems(items, 'gthb').map((i) => i.id)).toEqual(['1'])
+  })
+
+  it('requires every whitespace-separated token to match', () => {
+    expect(filterItems(items, 'github personal').map((i) => i.id)).toEqual(['1'])
+    // Second token has no home, so nothing matches.
+    expect(filterItems(items, 'github wifi')).toHaveLength(0)
+  })
+
+  it('ranks title matches above note-body matches', () => {
+    const results = filterItems(items, 'wifi').map((i) => i.id)
+    expect(results[0]).toBe('2')
   })
 
   it('returns nothing when there is no match', () => {

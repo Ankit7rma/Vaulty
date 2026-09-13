@@ -16,7 +16,8 @@ export type ImportSourceFormat =
   | 'vaulty-plain'
   | 'vaulty-encrypted'
   | 'bitwarden'
-  | 'csv';
+  | 'csv'
+  | 'otpauth';
 
 export interface ParsedImportItem {
   type: ItemType;
@@ -275,6 +276,49 @@ function importCsv(text: string): ImportPreview {
   return { format: 'csv', items, warnings };
 }
 
+// --- otpauth:// URIs --------------------------------------------------------
+
+/**
+ * Parses one or more otpauth:// URIs (any URI on its own line, or a single
+ * URI on any line). Each becomes a login item with the URI in the TOTP field.
+ */
+function importOtpauth(lines: string[]): ImportPreview {
+  const items: ParsedImportItem[] = [];
+  for (const raw of lines) {
+    const uri = raw.trim();
+    if (!uri.toLowerCase().startsWith('otpauth://')) continue;
+    let issuer = '';
+    let label = '';
+    try {
+      // otpauth://<type>/<label>?issuer=...&...
+      const url = new URL(uri);
+      const path = decodeURIComponent(url.pathname.replace(/^\//, ''));
+      const [maybeIssuer, maybeAccount] = path.split(':');
+      if (maybeAccount) {
+        issuer = maybeIssuer.trim();
+        label = maybeAccount.trim();
+      } else {
+        label = maybeIssuer.trim();
+      }
+      const paramIssuer = url.searchParams.get('issuer');
+      if (paramIssuer) issuer = paramIssuer;
+    } catch {
+      // fall through with empty strings; totp field still gets the raw URI
+    }
+    const title = issuer || label || 'One-time code';
+    const fields: LoginFields = {
+      title,
+      username: label,
+      password: '',
+      url: '',
+      notes: '',
+      totp: uri,
+    };
+    items.push({ type: 'login', fields });
+  }
+  return { format: 'otpauth', items, warnings: [] };
+}
+
 // --- Public API -------------------------------------------------------------
 
 export interface ParseImportOptions {
@@ -285,6 +329,17 @@ export async function parseImport(
   text: string,
   options: ParseImportOptions = {},
 ): Promise<ImportPreview> {
+  const trimmed = text.trim();
+  // Any input dominated by otpauth:// URIs is treated as a batch of TOTP
+  // additions, regardless of surrounding whitespace. Cheaper to check first
+  // than to feed to the JSON parser.
+  const otpLines = trimmed
+    .split(/\r?\n/)
+    .filter((l) => l.trim().toLowerCase().startsWith('otpauth://'));
+  if (otpLines.length > 0 && otpLines.length * 15 >= trimmed.length / 20) {
+    return importOtpauth(otpLines);
+  }
+
   const detected = detectJson(text);
   if (detected?.kind === 'plain') {
     return importVaultyPlain(detected.raw as PlainExport);
@@ -309,7 +364,9 @@ export async function parseImport(
   // Fall back to CSV. Empty output means we could not recognize the format.
   const csvPreview = importCsv(text);
   if (csvPreview.items.length === 0) {
-    throw new Error('Unrecognized format. Expected Vaulty, Bitwarden, or CSV.');
+    throw new Error(
+      'Unrecognized format. Expected Vaulty, Bitwarden, CSV, or otpauth:// URI.',
+    );
   }
   return csvPreview;
 }

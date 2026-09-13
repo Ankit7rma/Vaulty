@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertCircle, Loader2, Upload } from 'lucide-react';
+import { AlertCircle, Clipboard, Loader2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -69,6 +69,23 @@ function ImportBody({
     setError(null);
   }
 
+  async function readClipboard() {
+    setError(null);
+    try {
+      const contents = await navigator.clipboard.readText();
+      if (!contents) {
+        setError('Clipboard is empty.');
+        return;
+      }
+      setText(contents);
+      setPreview(null);
+    } catch {
+      setError(
+        'Could not read clipboard. Paste the export text into the box above instead.',
+      );
+    }
+  }
+
   async function analyze() {
     setError(null);
     setBusy(true);
@@ -118,16 +135,31 @@ function ImportBody({
             placeholder="Vaulty JSON, Bitwarden JSON, or CSV..."
             className="font-mono text-xs"
           />
-          <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground hover:bg-muted/40">
-            <Upload className="size-3.5" aria-hidden />
-            Upload a file
-            <input
-              type="file"
-              accept=".json,.csv,.txt,application/json,text/csv,text/plain"
-              className="sr-only"
-              onChange={onFilePicked}
-            />
-          </label>
+          <div className="flex flex-wrap gap-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed bg-muted/20 px-3 py-2 text-xs text-muted-foreground hover:bg-muted/40">
+              <Upload className="size-3.5" aria-hidden />
+              Upload a file
+              <input
+                type="file"
+                accept=".json,.csv,.txt,application/json,text/csv,text/plain"
+                className="sr-only"
+                onChange={onFilePicked}
+              />
+            </label>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={readClipboard}
+              className="gap-1.5"
+            >
+              <Clipboard className="size-3.5" aria-hidden />
+              Read clipboard
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Also accepts otpauth:// URIs (one per line) for bulk TOTP import.
+          </p>
         </div>
 
         {needsPassphrase && (

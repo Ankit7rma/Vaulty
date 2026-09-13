@@ -13,13 +13,9 @@ import { PasswordStrengthMeter } from './password-strength-meter';
 import { BreachCheck } from './breach-check';
 import { TotpCode } from './totp-code';
 import { ShareItem } from './share-item';
+import { TagInput } from './tag-input';
 import { isValidTotpSecret } from '@/lib/vault/totp';
-import type {
-  ItemFields,
-  ItemType,
-  LoginFields,
-  VaultItem,
-} from '@/lib/vault/items';
+import { normalizeTags, type ItemFields, type ItemType, type LoginFields, type VaultItem } from '@/lib/vault/items';
 
 function initialValues(type: ItemType, item?: VaultItem): Record<string, string> {
   if (item?.type === 'login') {
@@ -44,7 +40,9 @@ function buildFields(
   type: ItemType,
   v: Record<string, string>,
   favorite: boolean,
+  tags: string[],
 ): ItemFields {
+  const cleanTags = normalizeTags(tags);
   if (type === 'login') {
     const fields: LoginFields = {
       title: v.title ?? '',
@@ -53,15 +51,16 @@ function buildFields(
       url: v.url ?? '',
       notes: v.notes ?? '',
     };
-    // Only persist a TOTP secret when one was entered.
     if (v.totp?.trim()) fields.totp = v.totp.trim();
     if (favorite) fields.favorite = true;
+    if (cleanTags.length > 0) fields.tags = cleanTags;
     return fields;
   }
   return {
     title: v.title ?? '',
     body: v.body ?? '',
     ...(favorite ? { favorite: true } : {}),
+    ...(cleanTags.length > 0 ? { tags: cleanTags } : {}),
   };
 }
 
@@ -88,6 +87,7 @@ export function ItemForm({
   const [favorite, setFavorite] = useState<boolean>(
     () => Boolean(item?.fields.favorite),
   );
+  const [tags, setTags] = useState<string[]>(() => item?.fields.tags ?? []);
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,7 +105,7 @@ export function ItemForm({
     setBusy(true);
     setError(null);
     try {
-      await onSave(type, buildFields(type, values, favorite), item?.id);
+      await onSave(type, buildFields(type, values, favorite, tags), item?.id);
     } catch {
       setError('Could not save. Please try again.');
       setBusy(false);
@@ -144,6 +144,11 @@ export function ItemForm({
             <Star fill={favorite ? 'currentColor' : 'none'} aria-hidden />
           </Button>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="tags">Tags</Label>
+        <TagInput id="tags" value={tags} onChange={setTags} />
       </div>
 
       {type === 'login' ? (
@@ -254,7 +259,7 @@ export function ItemForm({
       )}
 
       {item && (
-        <ShareItem type={type} fields={buildFields(type, values, favorite)} />
+        <ShareItem type={type} fields={buildFields(type, values, favorite, tags)} />
       )}
       </div>
 

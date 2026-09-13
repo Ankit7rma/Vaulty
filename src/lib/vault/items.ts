@@ -20,16 +20,52 @@ export interface LoginFields {
   // Star / pinned flag. Encrypted like every other field so the server does
   // not see which items you have starred.
   favorite?: boolean;
+  // User-chosen tags. Encrypted like everything else, so the server does not
+  // learn how items are grouped.
+  tags?: string[];
 }
 
 export interface NoteFields {
   title: string;
   body: string;
   favorite?: boolean;
+  tags?: string[];
 }
 
 export function isFavorite(item: VaultItem): boolean {
   return Boolean(item.fields.favorite);
+}
+
+export function getTags(item: VaultItem): string[] {
+  return item.fields.tags ?? [];
+}
+
+/** Case-insensitive, deduplicated tag list drawn from an item collection. */
+export function collectTags(items: VaultItem[]): string[] {
+  const seen = new Map<string, string>();
+  for (const item of items) {
+    for (const tag of getTags(item)) {
+      const key = tag.toLowerCase();
+      if (!seen.has(key)) seen.set(key, tag);
+    }
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b));
+}
+
+/** Normalize a raw tag entry: trimmed, deduplicated by lowercase, capped. */
+export function normalizeTags(raw: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const t of raw) {
+    const trimmed = t.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(trimmed);
+    if (out.length >= 20) break;
+  }
+  return out;
 }
 
 export type ItemFields = LoginFields | NoteFields;

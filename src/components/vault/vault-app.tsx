@@ -7,7 +7,9 @@ import { Input } from '@/components/ui/input';
 import { useVaultKey } from '@/lib/vault/vault-key-context';
 import { useVaultItems } from '@/lib/vault/use-vault-items';
 import {
+  collectTags,
   filterItems,
+  getTags,
   isFavorite,
   type ItemFields,
   type ItemType,
@@ -42,11 +44,26 @@ function VaultAppInner({
     useVaultItems(cryptoKey);
   const [editing, setEditing] = useState<EditingItem | null>(null);
   const [query, setQuery] = useState('');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
+  const allTags = useMemo(() => collectTags(items), [items]);
+
+  // Derive an "effective" active tag so a stale selection (tag removed from
+  // every item after an edit) simply falls back to "All" without a setState.
+  const effectiveTag =
+    activeTag && allTags.some((t) => t.toLowerCase() === activeTag.toLowerCase())
+      ? activeTag
+      : null;
+
   const filtered = useMemo(() => {
-    const matched = filterItems(items, query);
+    const scoped = effectiveTag
+      ? items.filter((i) =>
+          getTags(i).some((t) => t.toLowerCase() === effectiveTag.toLowerCase()),
+        )
+      : items;
+    const matched = filterItems(scoped, query);
     // With no query, hoist favorites to the top while preserving each half's
     // existing (updatedAt-desc) ordering. When a query is present, keep the
     // relevance ranking from filterItems intact.
@@ -54,7 +71,7 @@ function VaultAppInner({
     const favs = matched.filter(isFavorite);
     const rest = matched.filter((i) => !isFavorite(i));
     return [...favs, ...rest];
-  }, [items, query]);
+  }, [items, query, effectiveTag]);
 
   async function handleToggleFavorite(item: VaultItem) {
     const nextFields = { ...item.fields, favorite: !isFavorite(item) };
@@ -178,6 +195,43 @@ function VaultAppInner({
               className="pl-8"
             />
           </div>
+          {allTags.length > 0 && (
+            <div
+              className="flex flex-wrap items-center gap-1.5"
+              role="group"
+              aria-label="Filter by tag"
+            >
+              <button
+                type="button"
+                onClick={() => setActiveTag(null)}
+                className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                  effectiveTag === null
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+              >
+                All
+              </button>
+              {allTags.map((tag) => {
+                const active = effectiveTag?.toLowerCase() === tag.toLowerCase();
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => setActiveTag(active ? null : tag)}
+                    aria-pressed={active}
+                    className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                      active
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    #{tag}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           {filtered.length === 0 ? (
             <div className="rounded-lg border border-dashed p-10 text-center">
               <p className="text-sm text-muted-foreground">

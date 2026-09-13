@@ -155,7 +155,15 @@ const LICENSE_SPEC: ItemTypeSpec = {
   shortLabel: 'License',
   description: 'Product key, holder, version.',
   icon: BadgeCheck,
-  fields: [],
+  fields: [
+    { name: 'productName', label: 'Product', kind: 'text' },
+    { name: 'licenseKey', label: 'License key', kind: 'password' },
+    { name: 'version', label: 'Version', kind: 'text' },
+    { name: 'licensedTo', label: 'Licensed to', kind: 'text' },
+    { name: 'purchaseDate', label: 'Purchase date', kind: 'text', placeholder: 'YYYY-MM-DD' },
+    { name: 'purchaseUrl', label: 'Purchase URL', kind: 'url' },
+    { name: 'notes', label: 'Notes', kind: 'textarea' },
+  ],
 };
 const WIFI_SPEC: ItemTypeSpec = {
   id: 'wifi',

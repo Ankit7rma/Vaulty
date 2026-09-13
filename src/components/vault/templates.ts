@@ -72,6 +72,13 @@ export const ITEM_TEMPLATES: ItemTemplate[] = [
     fields: { title: '', values: {} },
   },
   {
+    id: 'blank-license',
+    label: 'Software license',
+    description: 'Product key, version, holder.',
+    type: 'license',
+    fields: { title: '', values: {} },
+  },
+  {
     id: 'email-account',
     label: 'Email account',
     description: 'Pre-tagged with #email.',

@@ -29,8 +29,15 @@ import {
 } from './changelog-dialog';
 import { OnboardingTour, useTourCompleted } from './onboarding-tour';
 import { ExportDialog } from './export-dialog';
+import { ImportDialog } from './import-dialog';
 import { normalizeTags } from '@/lib/vault/items';
-import { Download, LayoutTemplate, ShieldCheck, Sparkles } from 'lucide-react';
+import {
+  Download,
+  LayoutTemplate,
+  ShieldCheck,
+  Sparkles,
+  Upload,
+} from 'lucide-react';
 
 const SEARCH_INPUT_ID = 'vaulty-search';
 
@@ -64,6 +71,7 @@ function VaultAppInner({
   const [reportOpen, setReportOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const changelogHasUpdates = useChangelogHasUpdates();
   const tourCompleted = useTourCompleted();
@@ -314,6 +322,15 @@ function VaultAppInner({
               </Button>
               <Button
                 variant="outline"
+                size="icon"
+                onClick={() => setImportOpen(true)}
+                aria-label="Import items"
+                title="Import items"
+              >
+                <Upload />
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => setEditing({ type: 'login' })}
               >
                 <KeyRound /> Add login
@@ -504,6 +521,17 @@ function VaultAppInner({
         open={exportOpen}
         onOpenChange={setExportOpen}
         items={activeItems}
+      />
+
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImport={async (parsed) => {
+          // Import sequentially so a partial failure leaves earlier successes.
+          for (const p of parsed) {
+            await createItem(p.type, p.fields);
+          }
+        }}
       />
     </main>
   );

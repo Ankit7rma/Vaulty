@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { Eye, EyeOff, ExternalLink, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, ExternalLink, Star, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,7 +40,11 @@ function initialValues(type: ItemType, item?: VaultItem): Record<string, string>
     : { title: '', body: '' };
 }
 
-function buildFields(type: ItemType, v: Record<string, string>): ItemFields {
+function buildFields(
+  type: ItemType,
+  v: Record<string, string>,
+  favorite: boolean,
+): ItemFields {
   if (type === 'login') {
     const fields: LoginFields = {
       title: v.title ?? '',
@@ -51,9 +55,14 @@ function buildFields(type: ItemType, v: Record<string, string>): ItemFields {
     };
     // Only persist a TOTP secret when one was entered.
     if (v.totp?.trim()) fields.totp = v.totp.trim();
+    if (favorite) fields.favorite = true;
     return fields;
   }
-  return { title: v.title ?? '', body: v.body ?? '' };
+  return {
+    title: v.title ?? '',
+    body: v.body ?? '',
+    ...(favorite ? { favorite: true } : {}),
+  };
 }
 
 function openUrl(raw: string) {
@@ -76,6 +85,9 @@ export function ItemForm({
   const [values, setValues] = useState<Record<string, string>>(() =>
     initialValues(type, item),
   );
+  const [favorite, setFavorite] = useState<boolean>(
+    () => Boolean(item?.fields.favorite),
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +105,7 @@ export function ItemForm({
     setBusy(true);
     setError(null);
     try {
-      await onSave(type, buildFields(type, values), item?.id);
+      await onSave(type, buildFields(type, values, favorite), item?.id);
     } catch {
       setError('Could not save. Please try again.');
       setBusy(false);
@@ -111,13 +123,27 @@ export function ItemForm({
 
       <div className="space-y-2">
         <Label htmlFor="title">Title</Label>
-        <Input
-          id="title"
-          value={values.title ?? ''}
-          onChange={(e) => set('title', e.target.value)}
-          autoFocus
-          required
-        />
+        <div className="flex gap-1">
+          <Input
+            id="title"
+            value={values.title ?? ''}
+            onChange={(e) => set('title', e.target.value)}
+            autoFocus
+            required
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setFavorite((f) => !f)}
+            aria-label={favorite ? 'Unstar item' : 'Star item'}
+            aria-pressed={favorite}
+            title={favorite ? 'Starred' : 'Star this item'}
+            className={favorite ? 'text-amber-500 hover:text-amber-600' : ''}
+          >
+            <Star fill={favorite ? 'currentColor' : 'none'} aria-hidden />
+          </Button>
+        </div>
       </div>
 
       {type === 'login' ? (
@@ -227,7 +253,9 @@ export function ItemForm({
         </div>
       )}
 
-      {item && <ShareItem type={type} fields={buildFields(type, values)} />}
+      {item && (
+        <ShareItem type={type} fields={buildFields(type, values, favorite)} />
+      )}
       </div>
 
       <DialogFooter className="m-0 shrink-0">

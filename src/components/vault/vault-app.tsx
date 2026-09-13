@@ -6,7 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useVaultKey } from '@/lib/vault/vault-key-context';
 import { useVaultItems } from '@/lib/vault/use-vault-items';
-import { filterItems, type ItemFields, type ItemType } from '@/lib/vault/items';
+import {
+  filterItems,
+  isFavorite,
+  type ItemFields,
+  type ItemType,
+  type VaultItem,
+} from '@/lib/vault/items';
 import { ItemList } from './item-list';
 import { ItemDialog, type EditingItem } from './item-dialog';
 import { CommandPalette } from './command-palette';
@@ -39,7 +45,21 @@ function VaultAppInner({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
-  const filtered = useMemo(() => filterItems(items, query), [items, query]);
+  const filtered = useMemo(() => {
+    const matched = filterItems(items, query);
+    // With no query, hoist favorites to the top while preserving each half's
+    // existing (updatedAt-desc) ordering. When a query is present, keep the
+    // relevance ranking from filterItems intact.
+    if (query.trim()) return matched;
+    const favs = matched.filter(isFavorite);
+    const rest = matched.filter((i) => !isFavorite(i));
+    return [...favs, ...rest];
+  }, [items, query]);
+
+  async function handleToggleFavorite(item: VaultItem) {
+    const nextFields = { ...item.fields, favorite: !isFavorite(item) };
+    await updateItem(item.id, item.type, nextFields as ItemFields);
+  }
 
   // Global keyboard shortcuts. Anything without a modifier is ignored while
   // the user is typing in an input, textarea, or contenteditable so it never
@@ -168,6 +188,7 @@ function VaultAppInner({
             <ItemList
               items={filtered}
               onOpen={(item) => setEditing({ type: item.type, item })}
+              onToggleFavorite={handleToggleFavorite}
             />
           )}
         </div>

@@ -17,11 +17,19 @@ export interface LoginFields {
   // Optional TOTP (2FA) secret, base32 or otpauth:// URI. Encrypted like every
   // other field; older items simply won't have it.
   totp?: string;
+  // Star / pinned flag. Encrypted like every other field so the server does
+  // not see which items you have starred.
+  favorite?: boolean;
 }
 
 export interface NoteFields {
   title: string;
   body: string;
+  favorite?: boolean;
+}
+
+export function isFavorite(item: VaultItem): boolean {
+  return Boolean(item.fields.favorite);
 }
 
 export type ItemFields = LoginFields | NoteFields;

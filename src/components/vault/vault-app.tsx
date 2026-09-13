@@ -23,8 +23,12 @@ import { ShortcutsDialog } from './shortcuts-dialog';
 import { BulkActionBar } from './bulk-action-bar';
 import { SecurityReport } from './security-report';
 import { TemplatePicker } from './template-picker';
+import {
+  ChangelogDialog,
+  useChangelogHasUpdates,
+} from './changelog-dialog';
 import { normalizeTags } from '@/lib/vault/items';
-import { LayoutTemplate, ShieldCheck } from 'lucide-react';
+import { LayoutTemplate, ShieldCheck, Sparkles } from 'lucide-react';
 
 const SEARCH_INPUT_ID = 'vaulty-search';
 
@@ -57,6 +61,8 @@ function VaultAppInner({
   const [view, setView] = useState<'vault' | 'trash'>('vault');
   const [reportOpen, setReportOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
+  const changelogHasUpdates = useChangelogHasUpdates();
 
   // Split active vs trashed once so both views work off the same source.
   const activeItems = useMemo(() => items.filter((i) => !isDeleted(i)), [items]);
@@ -249,6 +255,26 @@ function VaultAppInner({
               <Button
                 variant="outline"
                 size="icon"
+                onClick={() => setChangelogOpen(true)}
+                aria-label={
+                  changelogHasUpdates
+                    ? "What's new (updates available)"
+                    : "What's new"
+                }
+                title="What's new"
+                className="relative"
+              >
+                <Sparkles />
+                {changelogHasUpdates && (
+                  <span
+                    aria-hidden
+                    className="absolute top-1 right-1 size-1.5 rounded-full bg-primary"
+                  />
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => setReportOpen(true)}
                 aria-label="Security report"
                 title="Security report"
@@ -434,6 +460,11 @@ function VaultAppInner({
         onPick={(template) =>
           setEditing({ type: template.type, preset: template.fields })
         }
+      />
+
+      <ChangelogDialog
+        open={changelogOpen}
+        onOpenChange={setChangelogOpen}
       />
     </main>
   );

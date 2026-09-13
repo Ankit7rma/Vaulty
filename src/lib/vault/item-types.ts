@@ -140,7 +140,14 @@ const API_KEY_SPEC: ItemTypeSpec = {
   shortLabel: 'API',
   description: 'Service credentials.',
   icon: KeySquare,
-  fields: [],
+  fields: [
+    { name: 'service', label: 'Service', kind: 'text', placeholder: 'AWS, OpenAI, Stripe, ...' },
+    { name: 'environment', label: 'Environment', kind: 'text', placeholder: 'prod, staging, ...' },
+    { name: 'apiKey', label: 'API key', kind: 'password', sensitive: true },
+    { name: 'apiSecret', label: 'API secret', kind: 'password', sensitive: true },
+    { name: 'url', label: 'Endpoint URL', kind: 'url' },
+    { name: 'notes', label: 'Notes', kind: 'textarea' },
+  ],
 };
 const LICENSE_SPEC: ItemTypeSpec = {
   id: 'license',

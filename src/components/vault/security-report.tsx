@@ -1,7 +1,14 @@
 'use client';
 
-import { useMemo } from 'react';
-import { KeyRound, RefreshCw, ShieldCheck, Users } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  KeyRound,
+  Loader2,
+  RefreshCw,
+  ShieldAlert,
+  ShieldCheck,
+  Users,
+} from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +21,9 @@ import {
   findDuplicates,
   findReusedPasswords,
   findWeakPasswords,
+  scanBreachedPasswords,
+  type BreachFinding,
+  type BreachScanProgress,
 } from '@/lib/vault/reports';
 import type { VaultItem } from '@/lib/vault/items';
 
@@ -33,8 +43,52 @@ export function SecurityReport({
   const duplicates = useMemo(() => findDuplicates(items), [items]);
   const weak = useMemo(() => findWeakPasswords(items), [items]);
   const reused = useMemo(() => findReusedPasswords(items), [items]);
+  const [breach, setBreach] = useState<
+    | { status: 'idle' }
+    | { status: 'scanning'; progress: BreachScanProgress }
+    | { status: 'done'; findings: BreachFinding[] }
+    | { status: 'error' }
+  >({ status: 'idle' });
+  const scanAbortRef = useRef<AbortController | null>(null);
+
+  // Abort any in-flight scan when the dialog closes or unmounts.
+  useEffect(() => {
+    if (!open && scanAbortRef.current) {
+      scanAbortRef.current.abort();
+      scanAbortRef.current = null;
+    }
+    return () => scanAbortRef.current?.abort();
+  }, [open]);
+
+  async function runBreachScan() {
+    scanAbortRef.current?.abort();
+    const controller = new AbortController();
+    scanAbortRef.current = controller;
+    setBreach({ status: 'scanning', progress: { done: 0, total: 0 } });
+    try {
+      const findings = await scanBreachedPasswords(items, {
+        signal: controller.signal,
+        onProgress: (progress) =>
+          setBreach({ status: 'scanning', progress }),
+      });
+      if (!controller.signal.aborted) {
+        setBreach({ status: 'done', findings });
+      }
+    } catch {
+      if (!controller.signal.aborted) setBreach({ status: 'error' });
+    } finally {
+      if (scanAbortRef.current === controller) scanAbortRef.current = null;
+    }
+  }
+
+  const breachedCount =
+    breach.status === 'done' ? breach.findings.length : 0;
+
   const anyIssues =
-    duplicates.length > 0 || weak.length > 0 || reused.length > 0;
+    duplicates.length > 0 ||
+    weak.length > 0 ||
+    reused.length > 0 ||
+    breachedCount > 0;
 
   function jumpTo(id: string) {
     const item = items.find((i) => i.id === id);
@@ -95,6 +149,63 @@ export function SecurityReport({
                   </li>
                 ))}
               </ul>
+            )}
+          </ReportSection>
+
+          <ReportSection
+            title="Breached passwords"
+            hint="Checked against HaveIBeenPwned. Only a SHA-1 prefix leaves your browser."
+            count={breachedCount}
+            icon={<ShieldAlert className="size-4" aria-hidden />}
+            tone="warning"
+          >
+            {breach.status === 'idle' && (
+              <div className="rounded-md border border-dashed bg-background p-3 text-center">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={runBreachScan}
+                >
+                  Run breach scan
+                </Button>
+              </div>
+            )}
+            {breach.status === 'scanning' && (
+              <div className="flex items-center gap-2 rounded-md border bg-background p-3 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Checking {breach.progress.done} of {breach.progress.total}
+                unique passwords...
+              </div>
+            )}
+            {breach.status === 'error' && (
+              <div className="rounded-md border border-dashed bg-background p-3 text-center text-xs text-muted-foreground">
+                Scan unavailable. Try again in a moment.
+              </div>
+            )}
+            {breach.status === 'done' && (
+              breach.findings.length === 0 ? (
+                <EmptyRow text="No passwords found in known breaches." />
+              ) : (
+                <ul className="space-y-1.5">
+                  {breach.findings.map(({ item, count }) => (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        onClick={() => jumpTo(item.id)}
+                        className="flex w-full items-center gap-2 rounded-md border bg-background px-3 py-2 text-left text-sm hover:bg-muted"
+                      >
+                        <span className="min-w-0 flex-1 truncate font-medium">
+                          {item.title}
+                        </span>
+                        <span className="rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-medium text-destructive">
+                          {count.toLocaleString()} breaches
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )
             )}
           </ReportSection>
 

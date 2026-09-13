@@ -17,6 +17,8 @@ const schema = z.object({
     .string()
     .min(32, 'JWT_SECRET must be at least 32 characters (generate with `openssl rand -base64 48`)'),
   SESSION_TTL_HOURS: z.coerce.number().int().positive().default(12),
+  // Public origin used for canonical URLs, sitemap entries, and share links.
+  APP_URL: z.string().url().default('http://localhost:3000'),
 });
 
 export type Env = z.infer<typeof schema>;

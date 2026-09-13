@@ -1,4 +1,9 @@
+import type { Metadata } from 'next';
 import { SharedItemView } from '@/components/share/shared-item-view';
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 // Public page: no auth. The decryption key is only in the URL fragment, which
 // the browser never sends here, so the server renders a shell and the client

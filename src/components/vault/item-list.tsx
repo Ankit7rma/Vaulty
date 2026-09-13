@@ -1,6 +1,6 @@
 'use client';
 
-import { KeyRound, Star, StickyNote } from 'lucide-react';
+import { KeyRound, RotateCcw, Star, StickyNote } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { isFavorite, type VaultItem } from '@/lib/vault/items';
 
@@ -13,12 +13,15 @@ export function ItemList({
   items,
   onOpen,
   onToggleFavorite,
+  onRestore,
   selectedIds,
   onToggleSelect,
 }: {
   items: VaultItem[];
   onOpen: (item: VaultItem) => void;
   onToggleFavorite: (item: VaultItem) => void;
+  /** When provided (trash view), replaces the star with a Restore action. */
+  onRestore?: (item: VaultItem) => void;
   selectedIds: Set<string>;
   onToggleSelect: (item: VaultItem) => void;
 }) {
@@ -63,24 +66,36 @@ export function ItemList({
                   </p>
                 </div>
               </button>
-              <button
-                type="button"
-                onClick={() => onToggleFavorite(item)}
-                aria-label={fav ? 'Unstar item' : 'Star item'}
-                aria-pressed={fav}
-                title={fav ? 'Starred' : 'Star this item'}
-                className={`flex size-8 shrink-0 items-center justify-center rounded-md transition-colors ${
-                  fav
-                    ? 'text-amber-500 hover:bg-amber-500/10'
-                    : 'text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground'
-                }`}
-              >
-                <Star
-                  className="size-4"
-                  fill={fav ? 'currentColor' : 'none'}
-                  aria-hidden
-                />
-              </button>
+              {onRestore ? (
+                <button
+                  type="button"
+                  onClick={() => onRestore(item)}
+                  aria-label="Restore item"
+                  title="Restore to vault"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted-foreground/10 hover:text-foreground"
+                >
+                  <RotateCcw className="size-4" aria-hidden />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onToggleFavorite(item)}
+                  aria-label={fav ? 'Unstar item' : 'Star item'}
+                  aria-pressed={fav}
+                  title={fav ? 'Starred' : 'Star this item'}
+                  className={`flex size-8 shrink-0 items-center justify-center rounded-md transition-colors ${
+                    fav
+                      ? 'text-amber-500 hover:bg-amber-500/10'
+                      : 'text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground'
+                  }`}
+                >
+                  <Star
+                    className="size-4"
+                    fill={fav ? 'currentColor' : 'none'}
+                    aria-hidden
+                  />
+                </button>
+              )}
             </div>
           </li>
         );

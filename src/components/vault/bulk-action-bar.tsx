@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Tag, Trash2, X } from 'lucide-react';
+import { Loader2, RotateCcw, Tag, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,15 +16,19 @@ import { TagInput } from './tag-input';
 interface BulkActionBarProps {
   count: number;
   onClear: () => void;
-  onAddTags: (tags: string[]) => Promise<void>;
+  onAddTags?: (tags: string[]) => Promise<void>;
+  onRestore?: () => Promise<void>;
   onDelete: () => Promise<void>;
+  deleteLabel?: string;
 }
 
 export function BulkActionBar({
   count,
   onClear,
   onAddTags,
+  onRestore,
   onDelete,
+  deleteLabel = 'Delete',
 }: BulkActionBarProps) {
   const [tagOpen, setTagOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -34,7 +38,7 @@ export function BulkActionBar({
   if (count === 0) return null;
 
   async function runAddTags() {
-    if (pendingTags.length === 0) {
+    if (pendingTags.length === 0 || !onAddTags) {
       setTagOpen(false);
       return;
     }
@@ -43,6 +47,16 @@ export function BulkActionBar({
       await onAddTags(pendingTags);
       setPendingTags([]);
       setTagOpen(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runRestore() {
+    if (!onRestore) return;
+    setBusy(true);
+    try {
+      await onRestore();
     } finally {
       setBusy(false);
     }
@@ -69,15 +83,29 @@ export function BulkActionBar({
           {count} selected
         </span>
         <div className="h-4 w-px bg-border" aria-hidden />
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          onClick={() => setTagOpen(true)}
-          className="gap-1.5"
-        >
-          <Tag className="size-3.5" aria-hidden /> Add tag
-        </Button>
+        {onAddTags && (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={() => setTagOpen(true)}
+            className="gap-1.5"
+          >
+            <Tag className="size-3.5" aria-hidden /> Add tag
+          </Button>
+        )}
+        {onRestore && (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            onClick={runRestore}
+            disabled={busy}
+            className="gap-1.5"
+          >
+            <RotateCcw className="size-3.5" aria-hidden /> Restore
+          </Button>
+        )}
         <Button
           type="button"
           size="sm"
@@ -85,7 +113,7 @@ export function BulkActionBar({
           onClick={() => setDeleteOpen(true)}
           className="gap-1.5"
         >
-          <Trash2 className="size-3.5" aria-hidden /> Delete
+          <Trash2 className="size-3.5" aria-hidden /> {deleteLabel}
         </Button>
         <Button
           type="button"
@@ -133,10 +161,15 @@ export function BulkActionBar({
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Delete {count} items?</DialogTitle>
+            <DialogTitle>
+              {deleteLabel === 'Delete forever'
+                ? `Delete ${count} items forever?`
+                : `Move ${count} items to trash?`}
+            </DialogTitle>
             <DialogDescription>
-              This cannot be undone. Encrypted rows will be removed from the
-              server.
+              {deleteLabel === 'Delete forever'
+                ? 'This cannot be undone. Encrypted rows will be removed from the server.'
+                : 'Items go to the trash view. You can restore or permanently delete them from there.'}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

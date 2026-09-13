@@ -23,6 +23,10 @@ export interface LoginFields {
   // User-chosen tags. Encrypted like everything else, so the server does not
   // learn how items are grouped.
   tags?: string[];
+  // Soft-delete timestamp (ISO 8601). When set, the item lives in the trash
+  // view instead of the main list. Encrypted so the server does not know
+  // which items are trashed.
+  deletedAt?: string;
 }
 
 export interface NoteFields {
@@ -30,10 +34,15 @@ export interface NoteFields {
   body: string;
   favorite?: boolean;
   tags?: string[];
+  deletedAt?: string;
 }
 
 export function isFavorite(item: VaultItem): boolean {
   return Boolean(item.fields.favorite);
+}
+
+export function isDeleted(item: VaultItem): boolean {
+  return Boolean(item.fields.deletedAt);
 }
 
 export function getTags(item: VaultItem): string[] {

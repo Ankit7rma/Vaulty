@@ -10,6 +10,7 @@ import {
   collectTags,
   filterItems,
   getTags,
+  isDeleted,
   isFavorite,
   type ItemFields,
   type ItemType,
@@ -50,8 +51,14 @@ function VaultAppInner({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [view, setView] = useState<'vault' | 'trash'>('vault');
 
-  const allTags = useMemo(() => collectTags(items), [items]);
+  // Split active vs trashed once so both views work off the same source.
+  const activeItems = useMemo(() => items.filter((i) => !isDeleted(i)), [items]);
+  const trashedItems = useMemo(() => items.filter(isDeleted), [items]);
+  const viewItems = view === 'trash' ? trashedItems : activeItems;
+
+  const allTags = useMemo(() => collectTags(viewItems), [viewItems]);
 
   // Derive an "effective" active tag so a stale selection (tag removed from
   // every item after an edit) simply falls back to "All" without a setState.
@@ -62,10 +69,10 @@ function VaultAppInner({
 
   const filtered = useMemo(() => {
     const scoped = effectiveTag
-      ? items.filter((i) =>
+      ? viewItems.filter((i) =>
           getTags(i).some((t) => t.toLowerCase() === effectiveTag.toLowerCase()),
         )
-      : items;
+      : viewItems;
     const matched = filterItems(scoped, query);
     // With no query, hoist favorites to the top while preserving each half's
     // existing (updatedAt-desc) ordering. When a query is present, keep the
@@ -74,7 +81,7 @@ function VaultAppInner({
     const favs = matched.filter(isFavorite);
     const rest = matched.filter((i) => !isFavorite(i));
     return [...favs, ...rest];
-  }, [items, query, effectiveTag]);
+  }, [viewItems, query, effectiveTag]);
 
   async function handleToggleFavorite(item: VaultItem) {
     const nextFields = { ...item.fields, favorite: !isFavorite(item) };
@@ -96,10 +103,27 @@ function VaultAppInner({
 
   async function handleBulkDelete() {
     const targets = items.filter((i) => selectedIds.has(i.id));
-    // Fire deletes sequentially so a partial failure still leaves the earlier
-    // successes reflected in the UI and we do not overwhelm the API.
+    // Sequentially so a partial failure still reflects earlier successes.
     for (const item of targets) {
-      await deleteItem(item.id);
+      if (view === 'trash') {
+        await deleteItem(item.id);
+      } else {
+        const nextFields = {
+          ...item.fields,
+          deletedAt: new Date().toISOString(),
+        };
+        await updateItem(item.id, item.type, nextFields as ItemFields);
+      }
+    }
+    clearSelection();
+  }
+
+  async function handleBulkRestore() {
+    const targets = items.filter((i) => selectedIds.has(i.id));
+    for (const item of targets) {
+      const nextFields = { ...item.fields };
+      delete nextFields.deletedAt;
+      await updateItem(item.id, item.type, nextFields as ItemFields);
     }
     clearSelection();
   }
@@ -182,30 +206,79 @@ function VaultAppInner({
     setEditing(null);
   }
 
+  // In the main vault, "delete" is a soft delete: the item moves to the trash
+  // view. In the trash view, "delete" is permanent. Restore removes the
+  // deletedAt stamp and returns the item to the main vault.
   async function handleDelete(id: string) {
-    await deleteItem(id);
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+    if (isDeleted(item)) {
+      await deleteItem(id);
+    } else {
+      const nextFields = { ...item.fields, deletedAt: new Date().toISOString() };
+      await updateItem(id, item.type, nextFields as ItemFields);
+    }
     setEditing(null);
+  }
+
+  async function handleRestore(item: VaultItem) {
+    const nextFields = { ...item.fields };
+    delete nextFields.deletedAt;
+    await updateItem(item.id, item.type, nextFields as ItemFields);
   }
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-8">
-      <div className="mb-6 flex items-center justify-between gap-2">
+      <div className="mb-4 flex items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">
-          Your vault
-          {items.length > 0 && (
+          {view === 'trash' ? 'Trash' : 'Your vault'}
+          {viewItems.length > 0 && (
             <span className="ml-2 text-sm font-normal text-muted-foreground">
-              {items.length} item{items.length === 1 ? '' : 's'}
+              {viewItems.length} item{viewItems.length === 1 ? '' : 's'}
             </span>
           )}
         </h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setEditing({ type: 'login' })}>
-            <KeyRound /> Add login
-          </Button>
-          <Button variant="outline" onClick={() => setEditing({ type: 'note' })}>
-            <StickyNote /> Add note
-          </Button>
+          {view === 'vault' ? (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => setEditing({ type: 'login' })}
+              >
+                <KeyRound /> Add login
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setEditing({ type: 'note' })}
+              >
+                <StickyNote /> Add note
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" onClick={() => setView('vault')}>
+              Back to vault
+            </Button>
+          )}
         </div>
+      </div>
+
+      <div className="mb-4 flex items-center gap-1 border-b">
+        <ViewTab
+          label={`Vault${activeItems.length > 0 ? ` (${activeItems.length})` : ''}`}
+          active={view === 'vault'}
+          onClick={() => {
+            setView('vault');
+            clearSelection();
+          }}
+        />
+        <ViewTab
+          label={`Trash${trashedItems.length > 0 ? ` (${trashedItems.length})` : ''}`}
+          active={view === 'trash'}
+          onClick={() => {
+            setView('trash');
+            clearSelection();
+          }}
+        />
       </div>
 
       {error && (
@@ -216,10 +289,14 @@ function VaultAppInner({
 
       {loading ? (
         <p className="text-sm text-muted-foreground">Decrypting your vault...</p>
-      ) : items.length === 0 ? (
+      ) : viewItems.length === 0 ? (
         <div className="rounded-lg border border-dashed p-12 text-center">
           <p className="text-muted-foreground">
-            Your vault is empty. Add your first login or secure note.
+            {view === 'trash'
+              ? 'Trash is empty. Deleted items appear here.'
+              : items.length === 0
+                ? 'Your vault is empty. Add your first login or secure note.'
+                : 'Nothing here. Everything in your vault is active.'}
           </p>
         </div>
       ) : (
@@ -284,6 +361,7 @@ function VaultAppInner({
               items={filtered}
               onOpen={(item) => setEditing({ type: item.type, item })}
               onToggleFavorite={handleToggleFavorite}
+              onRestore={view === 'trash' ? handleRestore : undefined}
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
             />
@@ -301,7 +379,7 @@ function VaultAppInner({
       <CommandPalette
         open={paletteOpen}
         onOpenChange={setPaletteOpen}
-        items={items}
+        items={activeItems}
         onSelectItem={(item) => setEditing({ type: item.type, item })}
         onNewLogin={() => setEditing({ type: 'login' })}
         onNewNote={() => setEditing({ type: 'note' })}
@@ -314,9 +392,36 @@ function VaultAppInner({
       <BulkActionBar
         count={selectedIds.size}
         onClear={clearSelection}
-        onAddTags={handleBulkAddTags}
+        onAddTags={view === 'trash' ? undefined : handleBulkAddTags}
+        onRestore={view === 'trash' ? handleBulkRestore : undefined}
         onDelete={handleBulkDelete}
+        deleteLabel={view === 'trash' ? 'Delete forever' : 'Delete'}
       />
     </main>
+  );
+}
+
+function ViewTab({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+        active
+          ? 'border-primary text-foreground'
+          : 'border-transparent text-muted-foreground hover:text-foreground'
+      }`}
+    >
+      {label}
+    </button>
   );
 }

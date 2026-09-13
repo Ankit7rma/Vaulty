@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { KeyRound, ShieldCheck, Users } from 'lucide-react';
+import { KeyRound, RefreshCw, ShieldCheck, Users } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { findDuplicates, findWeakPasswords } from '@/lib/vault/reports';
+import {
+  findDuplicates,
+  findReusedPasswords,
+  findWeakPasswords,
+} from '@/lib/vault/reports';
 import type { VaultItem } from '@/lib/vault/items';
 
 interface SecurityReportProps {
@@ -28,7 +32,9 @@ export function SecurityReport({
 }: SecurityReportProps) {
   const duplicates = useMemo(() => findDuplicates(items), [items]);
   const weak = useMemo(() => findWeakPasswords(items), [items]);
-  const anyIssues = duplicates.length > 0 || weak.length > 0;
+  const reused = useMemo(() => findReusedPasswords(items), [items]);
+  const anyIssues =
+    duplicates.length > 0 || weak.length > 0 || reused.length > 0;
 
   function jumpTo(id: string) {
     const item = items.find((i) => i.id === id);
@@ -86,6 +92,49 @@ export function SecurityReport({
                         {label}
                       </span>
                     </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </ReportSection>
+
+          <ReportSection
+            title="Reused passwords"
+            hint="The same password across different services."
+            count={reused.length}
+            icon={<RefreshCw className="size-4" aria-hidden />}
+            tone="warning"
+          >
+            {reused.length === 0 ? (
+              <EmptyRow text="No password reuse detected." />
+            ) : (
+              <ul className="space-y-3">
+                {reused.map((group) => (
+                  <li
+                    key={group.bucketId}
+                    className="rounded-md border bg-background p-3"
+                  >
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">
+                      {group.members.length} entries share one password
+                    </p>
+                    <ul className="space-y-1">
+                      {group.members.map((m) => (
+                        <li key={m.id}>
+                          <button
+                            type="button"
+                            onClick={() => jumpTo(m.id)}
+                            className="w-full rounded px-1.5 py-1 text-left text-sm hover:bg-muted"
+                          >
+                            <span className="font-medium">{m.title}</span>
+                            {m.username && (
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                {m.username}
+                              </span>
+                            )}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
                   </li>
                 ))}
               </ul>

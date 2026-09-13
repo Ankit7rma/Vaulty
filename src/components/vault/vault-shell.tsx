@@ -27,6 +27,13 @@ export function VaultShell({ email }: { email: string }) {
     router.replace('/unlock');
   }, [lock, router]);
 
+  const handleSignOut = useCallback(async () => {
+    lock();
+    await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    router.push('/login');
+    router.refresh();
+  }, [lock, router]);
+
   useEffect(() => {
     if (!isUnlocked) router.replace('/unlock');
   }, [isUnlocked, router]);
@@ -52,7 +59,7 @@ export function VaultShell({ email }: { email: string }) {
           <SignOutButton />
         </div>
       </header>
-      <VaultApp />
+      <VaultApp onLock={handleLock} onSignOut={handleSignOut} />
     </div>
   );
 }

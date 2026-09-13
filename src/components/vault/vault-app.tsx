@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { KeyRound, Search, StickyNote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,22 +9,46 @@ import { useVaultItems } from '@/lib/vault/use-vault-items';
 import { filterItems, type ItemFields, type ItemType } from '@/lib/vault/items';
 import { ItemList } from './item-list';
 import { ItemDialog, type EditingItem } from './item-dialog';
+import { CommandPalette } from './command-palette';
 
-export function VaultApp() {
+interface VaultAppProps {
+  onLock: () => void;
+  onSignOut: () => void;
+}
+
+export function VaultApp(props: VaultAppProps) {
   const { key } = useVaultKey();
   // The shell guarantees the vault is unlocked before rendering this; the guard
   // is here only so the key is non-null for the inner component.
   if (!key) return null;
-  return <VaultAppInner cryptoKey={key} />;
+  return <VaultAppInner cryptoKey={key} {...props} />;
 }
 
-function VaultAppInner({ cryptoKey }: { cryptoKey: CryptoKey }) {
+function VaultAppInner({
+  cryptoKey,
+  onLock,
+  onSignOut,
+}: { cryptoKey: CryptoKey } & VaultAppProps) {
   const { items, loading, error, createItem, updateItem, deleteItem } =
     useVaultItems(cryptoKey);
   const [editing, setEditing] = useState<EditingItem | null>(null);
   const [query, setQuery] = useState('');
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   const filtered = useMemo(() => filterItems(items, query), [items, query]);
+
+  // Global Cmd/Ctrl+K opens the command palette. Ignored while typing in an
+  // input so it doesn't steal keystrokes from other combinations.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   async function handleSave(type: ItemType, fields: ItemFields, id?: string) {
     if (id) await updateItem(id, type, fields);
@@ -105,6 +129,17 @@ function VaultAppInner({ cryptoKey }: { cryptoKey: CryptoKey }) {
         onClose={() => setEditing(null)}
         onSave={handleSave}
         onDelete={handleDelete}
+      />
+
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        items={items}
+        onSelectItem={(item) => setEditing({ type: item.type, item })}
+        onNewLogin={() => setEditing({ type: 'login' })}
+        onNewNote={() => setEditing({ type: 'note' })}
+        onLock={onLock}
+        onSignOut={onSignOut}
       />
     </main>
   );

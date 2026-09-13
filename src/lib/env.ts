@@ -19,6 +19,9 @@ const schema = z.object({
   SESSION_TTL_HOURS: z.coerce.number().int().positive().default(12),
   // Public origin used for canonical URLs, sitemap entries, and share links.
   APP_URL: z.string().url().default('http://localhost:3000'),
+  // Shared secret Vercel Cron uses to authenticate scheduled invocations.
+  // Optional in dev; required for cron endpoints to accept requests in prod.
+  CRON_SECRET: z.string().min(16).optional(),
 });
 
 export type Env = z.infer<typeof schema>;

@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose';
+import { env } from '@/lib/env';
 
 /**
  * Stateless session tokens (JWT, HS256) that authorize API calls. The token
@@ -9,7 +10,6 @@ import { SignJWT, jwtVerify } from 'jose';
  */
 
 const ALG = 'HS256';
-const DEFAULT_TTL_HOURS = 12;
 
 export interface SessionPayload {
   userId: string;
@@ -17,16 +17,11 @@ export interface SessionPayload {
 }
 
 function getSecret(): Uint8Array {
-  const secret = process.env.JWT_SECRET;
-  if (!secret || secret.length < 16) {
-    throw new Error('JWT_SECRET must be set and at least 16 characters');
-  }
-  return new TextEncoder().encode(secret);
+  return new TextEncoder().encode(env.JWT_SECRET);
 }
 
 export function getSessionTtlHours(): number {
-  const parsed = Number(process.env.SESSION_TTL_HOURS);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_TTL_HOURS;
+  return env.SESSION_TTL_HOURS;
 }
 
 export async function createSessionToken(payload: SessionPayload): Promise<string> {

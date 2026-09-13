@@ -203,7 +203,15 @@ const CRYPTO_SPEC: ItemTypeSpec = {
   shortLabel: 'Wallet',
   description: 'Seed phrase and wallet metadata.',
   icon: Coins,
-  fields: [],
+  fields: [
+    { name: 'walletName', label: 'Wallet name', kind: 'text' },
+    { name: 'network', label: 'Network', kind: 'text', placeholder: 'Bitcoin, Ethereum, Solana, ...' },
+    { name: 'address', label: 'Public address', kind: 'text' },
+    { name: 'seedPhrase', label: 'Seed phrase', kind: 'textarea', sensitive: true },
+    { name: 'privateKey', label: 'Private key', kind: 'password', sensitive: true },
+    { name: 'walletPassword', label: 'Wallet password', kind: 'password' },
+    { name: 'notes', label: 'Notes', kind: 'textarea' },
+  ],
 };
 const PASSKEY_SPEC: ItemTypeSpec = {
   id: 'passkey',

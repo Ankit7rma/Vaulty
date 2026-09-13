@@ -121,6 +121,13 @@ export const ITEM_TEMPLATES: ItemTemplate[] = [
     fields: { title: '', values: {}, tags: ['bank', 'finance'] },
   },
   {
+    id: 'blank-crypto',
+    label: 'Crypto wallet',
+    description: 'Seed phrase, private key, address.',
+    type: 'crypto',
+    fields: { title: '', values: {}, tags: ['crypto'] },
+  },
+  {
     id: 'recovery-codes',
     label: 'Recovery codes',
     description: '2FA backup codes for a service.',

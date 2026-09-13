@@ -92,7 +92,14 @@ const IDENTITY_SPEC: ItemTypeSpec = {
   shortLabel: 'Identity',
   description: 'Personal contact information.',
   icon: UserSquare,
-  fields: [],
+  fields: [
+    { name: 'firstName', label: 'First name', kind: 'text' },
+    { name: 'lastName', label: 'Last name', kind: 'text' },
+    { name: 'phone', label: 'Phone', kind: 'text' },
+    { name: 'email', label: 'Email', kind: 'text' },
+    { name: 'address', label: 'Address', kind: 'textarea' },
+    { name: 'notes', label: 'Notes', kind: 'textarea' },
+  ],
 };
 const PASSPORT_SPEC: ItemTypeSpec = {
   id: 'passport',

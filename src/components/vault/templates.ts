@@ -44,6 +44,13 @@ export const ITEM_TEMPLATES: ItemTemplate[] = [
     fields: { title: '', values: {} },
   },
   {
+    id: 'blank-identity',
+    label: 'Identity',
+    description: 'Name, phone, email, address.',
+    type: 'identity',
+    fields: { title: '', values: {} },
+  },
+  {
     id: 'email-account',
     label: 'Email account',
     description: 'Pre-tagged with #email.',

@@ -171,7 +171,14 @@ const WIFI_SPEC: ItemTypeSpec = {
   shortLabel: 'Wi-Fi',
   description: 'SSID, password, security type.',
   icon: Wifi,
-  fields: [],
+  fields: [
+    { name: 'ssid', label: 'SSID', kind: 'text' },
+    { name: 'password', label: 'Password', kind: 'password' },
+    { name: 'security', label: 'Security', kind: 'text', placeholder: 'WPA3, WPA2, none, ...' },
+    { name: 'hidden', label: 'Hidden?', kind: 'text', placeholder: 'yes / no' },
+    { name: 'location', label: 'Location', kind: 'text' },
+    { name: 'notes', label: 'Notes', kind: 'textarea' },
+  ],
 };
 const BANK_SPEC: ItemTypeSpec = {
   id: 'bank',

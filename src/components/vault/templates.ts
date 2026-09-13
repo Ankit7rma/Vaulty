@@ -107,15 +107,11 @@ export const ITEM_TEMPLATES: ItemTemplate[] = [
     },
   },
   {
-    id: 'wifi-network',
+    id: 'blank-wifi',
     label: 'Wi-Fi network',
-    description: 'Note with SSID and password fields.',
-    type: 'note',
-    fields: {
-      title: 'Wi-Fi network',
-      body: 'SSID: \nPassword: \nSecurity: \nNotes: ',
-      tags: ['wifi'],
-    },
+    description: 'SSID, password, security type.',
+    type: 'wifi',
+    fields: { title: '', values: {}, tags: ['wifi'] },
   },
   {
     id: 'recovery-codes',

@@ -22,8 +22,9 @@ import { CommandPalette } from './command-palette';
 import { ShortcutsDialog } from './shortcuts-dialog';
 import { BulkActionBar } from './bulk-action-bar';
 import { SecurityReport } from './security-report';
+import { TemplatePicker } from './template-picker';
 import { normalizeTags } from '@/lib/vault/items';
-import { ShieldCheck } from 'lucide-react';
+import { LayoutTemplate, ShieldCheck } from 'lucide-react';
 
 const SEARCH_INPUT_ID = 'vaulty-search';
 
@@ -55,6 +56,7 @@ function VaultAppInner({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [view, setView] = useState<'vault' | 'trash'>('vault');
   const [reportOpen, setReportOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
 
   // Split active vs trashed once so both views work off the same source.
   const activeItems = useMemo(() => items.filter((i) => !isDeleted(i)), [items]);
@@ -255,6 +257,15 @@ function VaultAppInner({
               </Button>
               <Button
                 variant="outline"
+                size="icon"
+                onClick={() => setTemplatesOpen(true)}
+                aria-label="New item from template"
+                title="New item from template"
+              >
+                <LayoutTemplate />
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => setEditing({ type: 'login' })}
               >
                 <KeyRound /> Add login
@@ -415,6 +426,14 @@ function VaultAppInner({
         onOpenChange={setReportOpen}
         items={activeItems}
         onOpenItem={(item) => setEditing({ type: item.type, item })}
+      />
+
+      <TemplatePicker
+        open={templatesOpen}
+        onOpenChange={setTemplatesOpen}
+        onPick={(template) =>
+          setEditing({ type: template.type, preset: template.fields })
+        }
       />
     </main>
   );

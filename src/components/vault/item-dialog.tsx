@@ -13,6 +13,8 @@ import type { ItemFields, ItemType, VaultItem } from '@/lib/vault/items';
 export interface EditingItem {
   type: ItemType;
   item?: VaultItem;
+  /** Prefill values for a new item, e.g. from a template. Ignored when `item` is set. */
+  preset?: ItemFields;
 }
 
 function heading(editing: EditingItem): string {
@@ -52,6 +54,7 @@ export function ItemDialog({
               key={editing.item?.id ?? `new-${editing.type}`}
               type={editing.type}
               item={editing.item}
+              preset={editing.preset}
               onSave={onSave}
               onDelete={onDelete}
             />

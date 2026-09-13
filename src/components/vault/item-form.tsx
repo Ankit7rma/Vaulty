@@ -17,19 +17,28 @@ import { TagInput } from './tag-input';
 import { isValidTotpSecret } from '@/lib/vault/totp';
 import { normalizeTags, type ItemFields, type ItemType, type LoginFields, type VaultItem } from '@/lib/vault/items';
 
-function initialValues(type: ItemType, item?: VaultItem): Record<string, string> {
-  if (item?.type === 'login') {
+function initialValues(
+  type: ItemType,
+  item?: VaultItem,
+  preset?: ItemFields,
+): Record<string, string> {
+  const source = item?.fields ?? preset;
+  if (source && type === 'login') {
+    const l = source as LoginFields;
     return {
-      title: item.fields.title,
-      username: item.fields.username,
-      password: item.fields.password,
-      url: item.fields.url,
-      notes: item.fields.notes,
-      totp: item.fields.totp ?? '',
+      title: l.title ?? '',
+      username: l.username ?? '',
+      password: l.password ?? '',
+      url: l.url ?? '',
+      notes: l.notes ?? '',
+      totp: l.totp ?? '',
     };
   }
-  if (item?.type === 'note') {
-    return { title: item.fields.title, body: item.fields.body };
+  if (source && type === 'note') {
+    return {
+      title: source.title ?? '',
+      body: 'body' in source ? source.body : '',
+    };
   }
   return type === 'login'
     ? { title: '', username: '', password: '', url: '', notes: '', totp: '' }
@@ -73,21 +82,25 @@ function openUrl(raw: string) {
 export function ItemForm({
   type,
   item,
+  preset,
   onSave,
   onDelete,
 }: {
   type: ItemType;
   item?: VaultItem;
+  preset?: ItemFields;
   onSave: (type: ItemType, fields: ItemFields, id?: string) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 }) {
   const [values, setValues] = useState<Record<string, string>>(() =>
-    initialValues(type, item),
+    initialValues(type, item, preset),
   );
   const [favorite, setFavorite] = useState<boolean>(
-    () => Boolean(item?.fields.favorite),
+    () => Boolean(item?.fields.favorite ?? preset?.favorite),
   );
-  const [tags, setTags] = useState<string[]>(() => item?.fields.tags ?? []);
+  const [tags, setTags] = useState<string[]>(
+    () => item?.fields.tags ?? preset?.tags ?? [],
+  );
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

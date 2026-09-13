@@ -21,7 +21,8 @@ const SELECT_CLASS =
 
 export function SettingsDialog() {
   const [open, setOpen] = useState(false);
-  const { autoLockMinutes, clipboardClearSeconds, update } = useSettings();
+  const { autoLockMinutes, clipboardClearSeconds, showFavicons, update } =
+    useSettings();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -74,6 +75,24 @@ export function SettingsDialog() {
                 </option>
               ))}
             </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4"
+                checked={showFavicons}
+                onChange={(e) => update({ showFavicons: e.target.checked })}
+              />
+              <span>
+                <span className="font-medium">Show site favicons</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Loads each login&rsquo;s icon from
+                  icons.duckduckgo.com/ip3. This leaks the item URL host to
+                  DuckDuckGo. Off by default.
+                </span>
+              </span>
+            </label>
           </div>
         </div>
         <DialogFooter showCloseButton />

@@ -4,8 +4,16 @@ import { normalizeSettings, DEFAULT_SETTINGS } from './settings'
 describe('normalizeSettings', () => {
   it('passes through valid values', () => {
     expect(
-      normalizeSettings({ autoLockMinutes: 15, clipboardClearSeconds: 30 }),
-    ).toEqual({ autoLockMinutes: 15, clipboardClearSeconds: 30 })
+      normalizeSettings({
+        autoLockMinutes: 15,
+        clipboardClearSeconds: 30,
+        showFavicons: true,
+      }),
+    ).toEqual({
+      autoLockMinutes: 15,
+      clipboardClearSeconds: 30,
+      showFavicons: true,
+    })
   })
 
   it('falls back to defaults for missing or non-numeric input', () => {
@@ -19,7 +27,11 @@ describe('normalizeSettings', () => {
   it('allows 0 (never) for both timeouts', () => {
     expect(
       normalizeSettings({ autoLockMinutes: 0, clipboardClearSeconds: 0 }),
-    ).toEqual({ autoLockMinutes: 0, clipboardClearSeconds: 0 })
+    ).toEqual({
+      autoLockMinutes: 0,
+      clipboardClearSeconds: 0,
+      showFavicons: false,
+    })
   })
 
   it('clamps negative and absurd values into range', () => {

@@ -7,11 +7,18 @@
 export interface AppSettings {
   autoLockMinutes: number;
   clipboardClearSeconds: number;
+  /**
+   * When true, item rows load favicons from DuckDuckGo's icon service
+   * (icons.duckduckgo.com/ip3/{host}.ico). This leaks the item URL host to a
+   * third party, so the default is OFF to preserve zero-knowledge posture.
+   */
+  showFavicons: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   autoLockMinutes: 5,
   clipboardClearSeconds: 20,
+  showFavicons: false,
 };
 
 // Choices offered in the settings UI (0 = never).
@@ -51,5 +58,9 @@ export function normalizeSettings(raw: unknown): AppSettings {
       CLIPBOARD_MAX_SECONDS,
       DEFAULT_SETTINGS.clipboardClearSeconds,
     ),
+    showFavicons:
+      typeof obj.showFavicons === 'boolean'
+        ? obj.showFavicons
+        : DEFAULT_SETTINGS.showFavicons,
   };
 }

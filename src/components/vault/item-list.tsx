@@ -1,8 +1,10 @@
 'use client';
 
-import { KeyRound, RotateCcw, Star, StickyNote } from 'lucide-react';
+import { RotateCcw, Star } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { isFavorite, type VaultItem } from '@/lib/vault/items';
+import { useSettings } from '@/lib/settings/settings-context';
+import { ItemAvatar } from './item-avatar';
 
 function subtitle(item: VaultItem): string {
   if (item.type === 'login') return item.fields.username || 'No username';
@@ -25,6 +27,7 @@ export function ItemList({
   selectedIds: Set<string>;
   onToggleSelect: (item: VaultItem) => void;
 }) {
+  const { showFavicons } = useSettings();
   return (
     <ul className="divide-y rounded-lg border">
       {items.map((item) => {
@@ -52,11 +55,7 @@ export function ItemList({
                 onClick={() => onOpen(item)}
                 className="flex min-w-0 flex-1 items-center gap-3 py-3 text-left"
               >
-                {item.type === 'login' ? (
-                  <KeyRound className="shrink-0 text-muted-foreground" />
-                ) : (
-                  <StickyNote className="shrink-0 text-muted-foreground" />
-                )}
+                <ItemAvatar item={item} showFavicon={showFavicons} />
                 <div className="min-w-0">
                   <p className="truncate font-medium">
                     {item.fields.title || 'Untitled'}

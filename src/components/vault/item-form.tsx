@@ -15,6 +15,8 @@ import { TotpCode } from './totp-code';
 import { ShareItem } from './share-item';
 import { TagInput } from './tag-input';
 import { HistoryDialog } from './history-dialog';
+import { CustomItemForm } from './custom-item-form';
+import { isCustomItemType } from '@/lib/vault/item-types';
 import { isValidTotpSecret } from '@/lib/vault/totp';
 import { normalizeTags, type ItemFields, type ItemType, type LoginFields, type VaultItem } from '@/lib/vault/items';
 
@@ -80,7 +82,20 @@ function openUrl(raw: string) {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
-export function ItemForm({
+export function ItemForm(props: {
+  type: ItemType;
+  item?: VaultItem;
+  preset?: ItemFields;
+  onSave: (type: ItemType, fields: ItemFields, id?: string) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+}) {
+  if (isCustomItemType(props.type)) {
+    return <CustomItemForm {...props} />;
+  }
+  return <LoginNoteForm {...props} />;
+}
+
+function LoginNoteForm({
   type,
   item,
   preset,

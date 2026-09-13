@@ -6,7 +6,20 @@ import { encryptJson, decryptJson, type EncryptedBlob } from '@/lib/crypto';
  * into that ciphertext here in the browser.
  */
 
-export type ItemType = 'login' | 'note';
+export type ItemType =
+  | 'login'
+  | 'note'
+  | 'card'
+  | 'identity'
+  | 'passport'
+  | 'sshKey'
+  | 'apiKey'
+  | 'license'
+  | 'wifi'
+  | 'bank'
+  | 'crypto'
+  | 'passkey'
+  | 'file';
 
 export interface LoginFields {
   title: string;
@@ -32,6 +45,20 @@ export interface LoginFields {
 export interface NoteFields {
   title: string;
   body: string;
+  favorite?: boolean;
+  tags?: string[];
+  deletedAt?: string;
+}
+
+/**
+ * Generic shape for schema-driven item types (card, identity, wifi, etc.).
+ * `values` is a free-form map keyed by the FieldSpec.name from item-types.ts.
+ * All contents are encrypted client-side into the same cipher blob as any
+ * other type.
+ */
+export interface CustomFields {
+  title: string;
+  values: Record<string, string>;
   favorite?: boolean;
   tags?: string[];
   deletedAt?: string;
@@ -77,7 +104,7 @@ export function normalizeTags(raw: string[]): string[] {
   return out;
 }
 
-export type ItemFields = LoginFields | NoteFields;
+export type ItemFields = LoginFields | NoteFields | CustomFields;
 
 /** Encrypted record as stored by / returned from the server. */
 export interface ItemRecord {
@@ -98,7 +125,22 @@ interface BaseItem {
 /** A decrypted item held in memory on the client (discriminated on `type`). */
 export type VaultItem =
   | (BaseItem & { type: 'login'; fields: LoginFields })
-  | (BaseItem & { type: 'note'; fields: NoteFields });
+  | (BaseItem & { type: 'note'; fields: NoteFields })
+  | (BaseItem & {
+      type:
+        | 'card'
+        | 'identity'
+        | 'passport'
+        | 'sshKey'
+        | 'apiKey'
+        | 'license'
+        | 'wifi'
+        | 'bank'
+        | 'crypto'
+        | 'passkey'
+        | 'file';
+      fields: CustomFields;
+    });
 
 /**
  * Ranked, multi-token, fuzzy-tolerant search over already-decrypted items.
@@ -126,10 +168,20 @@ function searchableFields(item: VaultItem): WeightedField[] {
       { text: item.fields.notes, weight: 1 },
     ];
   }
-  return [
-    { text: item.fields.title, weight: 5 },
-    { text: item.fields.body, weight: 1 },
-  ];
+  if (item.type === 'note') {
+    return [
+      { text: item.fields.title, weight: 5 },
+      { text: item.fields.body, weight: 1 },
+    ];
+  }
+  // Custom-schema types: index the title plus every custom value string.
+  const out: WeightedField[] = [{ text: item.fields.title, weight: 5 }];
+  for (const value of Object.values(item.fields.values ?? {})) {
+    if (typeof value === 'string' && value) {
+      out.push({ text: value, weight: 1 });
+    }
+  }
+  return out;
 }
 
 function isSubsequence(needle: string, haystack: string): boolean {
@@ -198,5 +250,14 @@ export async function decryptRecord(
   if (record.type === 'login') {
     return { ...base, type: 'login', fields: await decryptJson<LoginFields>(key, blob) };
   }
-  return { ...base, type: 'note', fields: await decryptJson<NoteFields>(key, blob) };
+  if (record.type === 'note') {
+    return { ...base, type: 'note', fields: await decryptJson<NoteFields>(key, blob) };
+  }
+  // All other types share the CustomFields shape.
+  const fields = await decryptJson<CustomFields>(key, blob);
+  // Defensive normalization: older or malformed payloads may lack `values`.
+  if (!fields.values || typeof fields.values !== 'object') {
+    fields.values = {};
+  }
+  return { ...base, type: record.type, fields };
 }

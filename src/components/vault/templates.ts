@@ -37,6 +37,13 @@ export const ITEM_TEMPLATES: ItemTemplate[] = [
     fields: { title: '', body: '' },
   },
   {
+    id: 'blank-card',
+    label: 'Credit card',
+    description: 'Cardholder, number, expiry, CVV.',
+    type: 'card',
+    fields: { title: '', values: {} },
+  },
+  {
     id: 'email-account',
     label: 'Email account',
     description: 'Pre-tagged with #email.',

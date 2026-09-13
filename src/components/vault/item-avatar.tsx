@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { KeyRound, StickyNote } from 'lucide-react';
 import type { VaultItem } from '@/lib/vault/items';
+import { getTypeSpec } from '@/lib/vault/item-types';
 
 /**
  * Colored letter avatar (always available) with an optional favicon overlay.
@@ -51,6 +51,12 @@ function hostOf(url: string): string | null {
   }
 }
 
+function loginOrCustomUrl(item: VaultItem): string {
+  if (item.type === 'login') return item.fields.url;
+  if ('values' in item.fields) return item.fields.values.url ?? '';
+  return '';
+}
+
 function faviconUrl(host: string): string {
   return `https://icons.duckduckgo.com/ip3/${host}.ico`;
 }
@@ -63,12 +69,10 @@ export function ItemAvatar({
   showFavicon: boolean;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const host = useMemo(
-    () => (item.type === 'login' ? hostOf(item.fields.url) : null),
-    [item],
-  );
+  const host = useMemo(() => hostOf(loginOrCustomUrl(item)), [item]);
   const color = paletteColor(item.fields.title || item.id);
   const letter = initial(item.fields.title);
+  const TypeIcon = getTypeSpec(item.type).icon;
 
   const useFavicon = showFavicon && host && !imgFailed;
 
@@ -91,11 +95,7 @@ export function ItemAvatar({
         <>
           <span>{letter}</span>
           <span className="absolute right-0.5 bottom-0.5 rounded-sm bg-black/25 p-0.5 text-white/90">
-            {item.type === 'login' ? (
-              <KeyRound className="size-2.5" />
-            ) : (
-              <StickyNote className="size-2.5" />
-            )}
+            <TypeIcon className="size-2.5" />
           </span>
         </>
       )}

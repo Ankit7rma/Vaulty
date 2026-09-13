@@ -3,12 +3,16 @@
 import { RotateCcw, Star } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { isFavorite, type VaultItem } from '@/lib/vault/items';
+import { getTypeSpec } from '@/lib/vault/item-types';
 import { useSettings } from '@/lib/settings/settings-context';
 import { ItemAvatar } from './item-avatar';
 
 function subtitle(item: VaultItem): string {
   if (item.type === 'login') return item.fields.username || 'No username';
-  return 'Secure note';
+  if (item.type === 'note') return 'Secure note';
+  // Custom types: fall back to the type spec label, since the actual first
+  // field varies per type.
+  return getTypeSpec(item.type).label;
 }
 
 export function ItemList({

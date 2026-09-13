@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ItemForm } from './item-form';
+import { getTypeSpec } from '@/lib/vault/item-types';
 import type { ItemFields, ItemType, VaultItem } from '@/lib/vault/items';
 
 export interface EditingItem {
@@ -18,7 +19,7 @@ export interface EditingItem {
 }
 
 function heading(editing: EditingItem): string {
-  const noun = editing.type === 'login' ? 'login' : 'note';
+  const noun = getTypeSpec(editing.type).shortLabel.toLowerCase();
   return editing.item ? `Edit ${noun}` : `New ${noun}`;
 }
 

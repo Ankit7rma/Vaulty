@@ -21,7 +21,9 @@ import { ItemDialog, type EditingItem } from './item-dialog';
 import { CommandPalette } from './command-palette';
 import { ShortcutsDialog } from './shortcuts-dialog';
 import { BulkActionBar } from './bulk-action-bar';
+import { SecurityReport } from './security-report';
 import { normalizeTags } from '@/lib/vault/items';
+import { ShieldCheck } from 'lucide-react';
 
 const SEARCH_INPUT_ID = 'vaulty-search';
 
@@ -52,6 +54,7 @@ function VaultAppInner({
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [view, setView] = useState<'vault' | 'trash'>('vault');
+  const [reportOpen, setReportOpen] = useState(false);
 
   // Split active vs trashed once so both views work off the same source.
   const activeItems = useMemo(() => items.filter((i) => !isDeleted(i)), [items]);
@@ -243,6 +246,15 @@ function VaultAppInner({
             <>
               <Button
                 variant="outline"
+                size="icon"
+                onClick={() => setReportOpen(true)}
+                aria-label="Security report"
+                title="Security report"
+              >
+                <ShieldCheck />
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => setEditing({ type: 'login' })}
               >
                 <KeyRound /> Add login
@@ -396,6 +408,13 @@ function VaultAppInner({
         onRestore={view === 'trash' ? handleBulkRestore : undefined}
         onDelete={handleBulkDelete}
         deleteLabel={view === 'trash' ? 'Delete forever' : 'Delete'}
+      />
+
+      <SecurityReport
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        items={activeItems}
+        onOpenItem={(item) => setEditing({ type: item.type, item })}
       />
     </main>
   );

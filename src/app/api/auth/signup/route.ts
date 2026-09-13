@@ -4,6 +4,7 @@ import { signupSchema } from '@/lib/auth/schemas';
 import { hashAccountPassword } from '@/lib/auth/password';
 import { startSession } from '@/lib/auth/cookies';
 import { logger } from '@/lib/logger';
+import { rateLimit } from '@/lib/rate-limit';
 
 function isUniqueViolation(error: unknown): boolean {
   return (
@@ -16,6 +17,22 @@ function isUniqueViolation(error: unknown): boolean {
 
 export async function POST(request: Request) {
   const log = logger.forRequest(request);
+
+  // Cap signups per IP so bots can't spray-create accounts. Legitimate humans
+  // signing up from a shared NAT should never hit this.
+  const ipLimit = await rateLimit(request, {
+    name: 'auth.signup.ip',
+    limit: 20,
+    windowSeconds: 60 * 60,
+  });
+  if (!ipLimit.ok) {
+    log.warn('signup.rate_limited_ip', { resetSeconds: ipLimit.resetSeconds });
+    return NextResponse.json(
+      { error: 'Too many signups from this network. Try again later.' },
+      { status: 429, headers: { 'Retry-After': String(ipLimit.resetSeconds) } },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();

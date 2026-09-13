@@ -22,6 +22,11 @@ const schema = z.object({
   // Shared secret Vercel Cron uses to authenticate scheduled invocations.
   // Optional in dev; required for cron endpoints to accept requests in prod.
   CRON_SECRET: z.string().min(16).optional(),
+  // Upstash Redis (used for durable rate limits across serverless functions).
+  // When either is missing, the app falls back to per-process in-memory limits
+  // which are fine for dev but do NOT protect prod deployments correctly.
+  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+  UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
 });
 
 export type Env = z.infer<typeof schema>;

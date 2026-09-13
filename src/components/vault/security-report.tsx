@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { ShieldCheck, Users } from 'lucide-react';
+import { KeyRound, ShieldCheck, Users } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { findDuplicates } from '@/lib/vault/reports';
+import { findDuplicates, findWeakPasswords } from '@/lib/vault/reports';
 import type { VaultItem } from '@/lib/vault/items';
 
 interface SecurityReportProps {
@@ -27,7 +27,8 @@ export function SecurityReport({
   onOpenItem,
 }: SecurityReportProps) {
   const duplicates = useMemo(() => findDuplicates(items), [items]);
-  const anyIssues = duplicates.length > 0;
+  const weak = useMemo(() => findWeakPasswords(items), [items]);
+  const anyIssues = duplicates.length > 0 || weak.length > 0;
 
   function jumpTo(id: string) {
     const item = items.find((i) => i.id === id);
@@ -54,11 +55,42 @@ export function SecurityReport({
               <div>
                 <p className="text-sm font-medium">Nothing to fix right now</p>
                 <p className="text-xs text-muted-foreground">
-                  No duplicate logins detected. More checks coming soon.
+                  Every check passed.
                 </p>
               </div>
             </div>
           )}
+
+          <ReportSection
+            title="Weak passwords"
+            hint="Estimated below Fair on the zxcvbn scale."
+            count={weak.length}
+            icon={<KeyRound className="size-4" aria-hidden />}
+            tone="warning"
+          >
+            {weak.length === 0 ? (
+              <EmptyRow text="No weak passwords found." />
+            ) : (
+              <ul className="space-y-1.5">
+                {weak.map(({ item, label }) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => jumpTo(item.id)}
+                      className="flex w-full items-center gap-2 rounded-md border bg-background px-3 py-2 text-left text-sm hover:bg-muted"
+                    >
+                      <span className="min-w-0 flex-1 truncate font-medium">
+                        {item.title}
+                      </span>
+                      <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-500">
+                        {label}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </ReportSection>
 
           <ReportSection
             title="Duplicate logins"

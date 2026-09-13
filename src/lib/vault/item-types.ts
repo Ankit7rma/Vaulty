@@ -219,7 +219,15 @@ const PASSKEY_SPEC: ItemTypeSpec = {
   shortLabel: 'Passkey',
   description: 'Stored WebAuthn credential.',
   icon: Fingerprint,
-  fields: [],
+  fields: [
+    { name: 'relyingParty', label: 'Relying party', kind: 'text', placeholder: 'e.g. github.com' },
+    { name: 'username', label: 'Username', kind: 'text' },
+    { name: 'credentialId', label: 'Credential ID', kind: 'password' },
+    { name: 'publicKey', label: 'Public key', kind: 'textarea' },
+    { name: 'privateKey', label: 'Private key / seed', kind: 'textarea', sensitive: true },
+    { name: 'algorithm', label: 'Algorithm', kind: 'text', placeholder: 'ES256, RS256, ...' },
+    { name: 'notes', label: 'Notes', kind: 'textarea' },
+  ],
 };
 const FILE_SPEC: ItemTypeSpec = {
   id: 'file',

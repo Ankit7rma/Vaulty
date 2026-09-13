@@ -128,6 +128,13 @@ export const ITEM_TEMPLATES: ItemTemplate[] = [
     fields: { title: '', values: {}, tags: ['crypto'] },
   },
   {
+    id: 'blank-passkey',
+    label: 'Passkey',
+    description: 'Relying party, credential, public key.',
+    type: 'passkey',
+    fields: { title: '', values: {} },
+  },
+  {
     id: 'recovery-codes',
     label: 'Recovery codes',
     description: '2FA backup codes for a service.',

@@ -114,6 +114,13 @@ export const ITEM_TEMPLATES: ItemTemplate[] = [
     fields: { title: '', values: {}, tags: ['wifi'] },
   },
   {
+    id: 'blank-bank',
+    label: 'Bank account',
+    description: 'Account, routing, IBAN, SWIFT.',
+    type: 'bank',
+    fields: { title: '', values: {}, tags: ['bank', 'finance'] },
+  },
+  {
     id: 'recovery-codes',
     label: 'Recovery codes',
     description: '2FA backup codes for a service.',

@@ -186,7 +186,16 @@ const BANK_SPEC: ItemTypeSpec = {
   shortLabel: 'Bank',
   description: 'Account and routing details.',
   icon: Landmark,
-  fields: [],
+  fields: [
+    { name: 'bankName', label: 'Bank', kind: 'text' },
+    { name: 'accountHolder', label: 'Account holder', kind: 'text' },
+    { name: 'accountNumber', label: 'Account number', kind: 'password' },
+    { name: 'routingNumber', label: 'Routing / sort code', kind: 'password' },
+    { name: 'iban', label: 'IBAN', kind: 'password' },
+    { name: 'swift', label: 'SWIFT / BIC', kind: 'text' },
+    { name: 'branch', label: 'Branch', kind: 'text' },
+    { name: 'notes', label: 'Notes', kind: 'textarea' },
+  ],
 };
 const CRYPTO_SPEC: ItemTypeSpec = {
   id: 'crypto',

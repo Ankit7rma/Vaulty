@@ -27,7 +27,13 @@ export async function POST(request: Request) {
   const parsed = signupSchema.safeParse(body);
   if (!parsed.success) {
     log.warn('signup.invalid_payload');
-    return NextResponse.json({ error: 'Invalid email or password' }, { status: 400 });
+    // Surface a specific message for password issues (length, strength) so the
+    // user can act on it; keep other validation errors generic.
+    const passwordIssue = parsed.error.issues.find(
+      (i) => i.path[0] === 'password',
+    );
+    const message = passwordIssue?.message ?? 'Invalid email or password';
+    return NextResponse.json({ error: message }, { status: 400 });
   }
   const { email, password } = parsed.data;
 

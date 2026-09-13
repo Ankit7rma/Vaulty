@@ -28,8 +28,9 @@ import {
   useChangelogHasUpdates,
 } from './changelog-dialog';
 import { OnboardingTour, useTourCompleted } from './onboarding-tour';
+import { ExportDialog } from './export-dialog';
 import { normalizeTags } from '@/lib/vault/items';
-import { LayoutTemplate, ShieldCheck, Sparkles } from 'lucide-react';
+import { Download, LayoutTemplate, ShieldCheck, Sparkles } from 'lucide-react';
 
 const SEARCH_INPUT_ID = 'vaulty-search';
 
@@ -62,6 +63,7 @@ function VaultAppInner({
   const [view, setView] = useState<'vault' | 'trash'>('vault');
   const [reportOpen, setReportOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const changelogHasUpdates = useChangelogHasUpdates();
   const tourCompleted = useTourCompleted();
@@ -303,6 +305,15 @@ function VaultAppInner({
               </Button>
               <Button
                 variant="outline"
+                size="icon"
+                onClick={() => setExportOpen(true)}
+                aria-label="Export vault"
+                title="Export vault"
+              >
+                <Download />
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => setEditing({ type: 'login' })}
               >
                 <KeyRound /> Add login
@@ -487,6 +498,12 @@ function VaultAppInner({
             setTourDismissedThisSession(true);
           }
         }}
+      />
+
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        items={activeItems}
       />
     </main>
   );

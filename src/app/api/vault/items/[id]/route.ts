@@ -12,9 +12,15 @@ const ITEM_SELECT = {
   updatedAt: true,
 } as const;
 
+const HISTORY_KEEP = 10;
+
 type Params = { params: Promise<{ id: string }> };
 
-/** Replace an item's encrypted blob. Scoped to the owner. */
+/**
+ * Replace an item's encrypted blob. Snapshots the pre-update ciphertext into
+ * VaultItemHistory before overwriting so the user can restore prior versions,
+ * and caps history at HISTORY_KEEP entries per item to bound growth.
+ */
 export async function PUT(request: Request, { params }: Params) {
   const session = await getSession();
   if (!session) {
@@ -34,19 +40,48 @@ export async function PUT(request: Request, { params }: Params) {
     return NextResponse.json({ error: 'Invalid item' }, { status: 400 });
   }
 
-  // updateMany with the userId filter is the ownership check in one query.
-  const result = await prisma.vaultItem.updateMany({
-    where: { id, userId: session.userId },
-    data: parsed.data,
+  const item = await prisma.$transaction(async (tx) => {
+    // Ownership check + fetch the current state in one query.
+    const current = await tx.vaultItem.findFirst({
+      where: { id, userId: session.userId },
+      select: { id: true, type: true, cipher: true, iv: true },
+    });
+    if (!current) return null;
+
+    // Snapshot the current version before overwriting.
+    await tx.vaultItemHistory.create({
+      data: {
+        itemId: current.id,
+        type: current.type,
+        cipher: current.cipher,
+        iv: current.iv,
+      },
+    });
+
+    // Prune to the most recent HISTORY_KEEP entries. Simple two-query prune
+    // is fine here (10 rows per item cap); a windowed DELETE would need raw SQL.
+    const olderIds = (
+      await tx.vaultItemHistory.findMany({
+        where: { itemId: current.id },
+        orderBy: { savedAt: 'desc' },
+        skip: HISTORY_KEEP,
+        select: { id: true },
+      })
+    ).map((r) => r.id);
+    if (olderIds.length > 0) {
+      await tx.vaultItemHistory.deleteMany({ where: { id: { in: olderIds } } });
+    }
+
+    return tx.vaultItem.update({
+      where: { id: current.id },
+      data: parsed.data,
+      select: ITEM_SELECT,
+    });
   });
-  if (result.count === 0) {
+
+  if (!item) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
-
-  const item = await prisma.vaultItem.findUnique({
-    where: { id },
-    select: ITEM_SELECT,
-  });
   return NextResponse.json({ item });
 }
 

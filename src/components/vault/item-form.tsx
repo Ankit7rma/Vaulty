@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { Eye, EyeOff, ExternalLink, Star, Trash2 } from 'lucide-react';
+import { Clock, Eye, EyeOff, ExternalLink, Star, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,7 @@ import { BreachCheck } from './breach-check';
 import { TotpCode } from './totp-code';
 import { ShareItem } from './share-item';
 import { TagInput } from './tag-input';
+import { HistoryDialog } from './history-dialog';
 import { isValidTotpSecret } from '@/lib/vault/totp';
 import { normalizeTags, type ItemFields, type ItemType, type LoginFields, type VaultItem } from '@/lib/vault/items';
 
@@ -104,6 +105,7 @@ export function ItemForm({
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   function set(name: string, value: string) {
     setValues((prev) => ({ ...prev, [name]: value }));
@@ -278,14 +280,23 @@ export function ItemForm({
 
       <DialogFooter className="m-0 shrink-0">
         {item && (
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={() => onDelete(item.id)}
-            className="sm:mr-auto"
-          >
-            <Trash2 /> Delete
-          </Button>
+          <div className="flex gap-2 sm:mr-auto">
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => onDelete(item.id)}
+            >
+              <Trash2 /> Delete
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setHistoryOpen(true)}
+              title="View earlier versions"
+            >
+              <Clock /> History
+            </Button>
+          </div>
         )}
         <DialogClose
           render={
@@ -298,6 +309,17 @@ export function ItemForm({
           {busy ? 'Saving...' : 'Save'}
         </Button>
       </DialogFooter>
+
+      {item && (
+        <HistoryDialog
+          open={historyOpen}
+          onOpenChange={setHistoryOpen}
+          itemId={item.id}
+          onRestore={async (fields) => {
+            await onSave(type, fields, item.id);
+          }}
+        />
+      )}
     </form>
   );
 }

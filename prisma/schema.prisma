@@ -52,7 +52,24 @@ model VaultItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  history VaultItemHistory[]
+
   @@index([userId])
+}
+
+// Prior versions of an item, snapshotted every time it is updated. Stores the
+// same encrypted cipher/iv shape as VaultItem, so the server still never sees
+// plaintext. Bounded by the API layer (recent-N per item) to cap growth.
+model VaultItemHistory {
+  id        String   @id @default(cuid())
+  itemId    String
+  item      VaultItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  type      String
+  cipher    String
+  iv        String
+  savedAt   DateTime @default(now())
+
+  @@index([itemId, savedAt])
 }
 
 // A one-time, expiring share of a single item. The ciphertext is encrypted with

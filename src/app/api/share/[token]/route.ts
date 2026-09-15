@@ -26,6 +26,7 @@ export async function GET(_request: Request, { params }: Params) {
         expiresAt: true,
         viewCount: true,
         maxViews: true,
+        passSalt: true,
       },
     });
     if (!share) return { status: 'missing' as const };
@@ -41,6 +42,7 @@ export async function GET(_request: Request, { params }: Params) {
         status: 'ok' as const,
         cipher: share.cipher,
         iv: share.iv,
+        passSalt: share.passSalt,
         remaining: 0,
       };
     }
@@ -52,6 +54,7 @@ export async function GET(_request: Request, { params }: Params) {
       status: 'ok' as const,
       cipher: share.cipher,
       iv: share.iv,
+      passSalt: share.passSalt,
       remaining: share.maxViews - nextCount,
     };
   });
@@ -63,7 +66,12 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ error: 'Expired' }, { status: 410 });
   }
   return NextResponse.json(
-    { cipher: result.cipher, iv: result.iv, remaining: result.remaining },
+    {
+      cipher: result.cipher,
+      iv: result.iv,
+      remaining: result.remaining,
+      passSalt: result.passSalt,
+    },
     { headers: { 'Cache-Control': 'no-store' } },
   );
 }

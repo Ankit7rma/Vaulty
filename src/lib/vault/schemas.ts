@@ -69,6 +69,9 @@ export const shareInputSchema = z.object({
   expiresInHours: z.number().int().min(1).max(720).optional(),
   // Number of times the share can be opened before it self-destructs.
   maxViews: z.number().int().min(1).max(50).optional(),
+  // Argon2id salt (base64) when a passphrase gate was added on top of the
+  // URL-fragment key. Server stores it opaquely.
+  passSalt: z.string().min(1).max(200).optional(),
 });
 
 export type ShareInput = z.infer<typeof shareInputSchema>;

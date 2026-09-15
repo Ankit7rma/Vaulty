@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid share payload' }, { status: 400 });
   }
-  const { cipher, iv, expiresInHours, maxViews } = parsed.data;
+  const { cipher, iv, expiresInHours, maxViews, passSalt } = parsed.data;
 
   const token = generateToken();
   const expiresAt = new Date(
@@ -47,6 +47,7 @@ export async function POST(request: Request) {
       expiresAt,
       maxViews: maxViews ?? 1,
       createdBy: session.userId,
+      passSalt: passSalt ?? null,
     },
   });
 

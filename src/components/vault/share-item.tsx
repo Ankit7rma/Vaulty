@@ -10,6 +10,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useClipboard } from '@/lib/vault/use-clipboard';
 import { createShareLink } from '@/lib/vault/share';
@@ -37,13 +38,19 @@ export function ShareItem({
   const [expiryHours, setExpiryHours] = useState<number>(24);
   const [maxViews, setMaxViews] = useState<number>(1);
   const [note, setNote] = useState<string>('');
+  const [passphrase, setPassphrase] = useState<string>('');
 
   async function onShare() {
     setBusy(true);
     setError(null);
     try {
       setUrl(
-        await createShareLink(type, fields, expiryHours, maxViews, note),
+        await createShareLink(type, fields, {
+          expiresInHours: expiryHours,
+          maxViews,
+          note,
+          passphrase: passphrase.trim() || undefined,
+        }),
       );
       setCopied(false);
     } catch {
@@ -143,6 +150,14 @@ export function ShareItem({
             rows={2}
             className="text-xs"
             aria-label="Message for the recipient"
+          />
+          <Input
+            value={passphrase}
+            onChange={(e) => setPassphrase(e.target.value)}
+            placeholder="Optional passphrase (share it out-of-band)"
+            aria-label="Passphrase to protect this share"
+            type="password"
+            className="text-xs"
           />
         <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground">

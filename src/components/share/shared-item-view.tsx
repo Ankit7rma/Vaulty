@@ -1,7 +1,15 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Eye, EyeOff, ExternalLink, KeyRound, StickyNote } from 'lucide-react';
+import {
+  Eye,
+  EyeOff,
+  ExternalLink,
+  KeyRound,
+  Loader2,
+  Lock,
+  StickyNote,
+} from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -9,13 +17,19 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { CopyButton } from '@/components/vault/copy-button';
 import { TotpCode } from '@/components/vault/totp-code';
 import { isValidTotpSecret } from '@/lib/vault/totp';
-import { openShare, type OpenedShare } from '@/lib/vault/share';
+import {
+  decryptShare,
+  fetchShare,
+  type OpenedShare,
+  type SharePrelude,
+} from '@/lib/vault/share';
 import type { LoginFields, NoteFields } from '@/lib/vault/items';
 
-type Status = 'loading' | 'error' | 'ready';
+type Status = 'loading' | 'error' | 'passphrase' | 'ready';
 
 function openUrl(raw: string) {
   const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
@@ -100,10 +114,13 @@ function LoginView({ fields }: { fields: LoginFields }) {
 export function SharedItemView({ token }: { token: string }) {
   const [status, setStatus] = useState<Status>('loading');
   const [payload, setPayload] = useState<OpenedShare | null>(null);
-  // Opening a one-time share is a destructive read, so it must happen exactly
-  // once. This ref guards against React StrictMode's double-invoked effect,
-  // which would otherwise consume the share on the first call and 404 on the
-  // second.
+  const [prelude, setPrelude] = useState<SharePrelude | null>(null);
+  const [passphrase, setPassphrase] = useState('');
+  const [passError, setPassError] = useState<string | null>(null);
+  const [decrypting, setDecrypting] = useState(false);
+  const keyRef = useRef<string>('');
+  // fetchShare consumes a view server-side, so it must run exactly once.
+  // StrictMode double-invokes effects; this ref guards against that.
   const openedRef = useRef(false);
 
   useEffect(() => {
@@ -111,16 +128,42 @@ export function SharedItemView({ token }: { token: string }) {
     openedRef.current = true;
 
     const key = window.location.hash.replace(/^#/, '');
+    keyRef.current = key;
+
+    // Missing key => URL fragment was stripped or never set. Fail fast
+    // without hitting the server so we don't consume a view on a broken link.
     const run = key
-      ? openShare(token, key)
+      ? fetchShare(token)
       : Promise.reject(new Error('missing key'));
     run
-      .then((result) => {
-        setPayload(result);
+      .then(async (p) => {
+        setPrelude(p);
+        if (p.passSalt) {
+          setStatus('passphrase');
+          return;
+        }
+        const opened = await decryptShare(p, key);
+        setPayload(opened);
         setStatus('ready');
       })
       .catch(() => setStatus('error'));
   }, [token]);
+
+  async function tryPassphrase(event: React.FormEvent) {
+    event.preventDefault();
+    if (!prelude) return;
+    setPassError(null);
+    setDecrypting(true);
+    try {
+      const opened = await decryptShare(prelude, keyRef.current, passphrase);
+      setPayload(opened);
+      setStatus('ready');
+    } catch {
+      setPassError('Wrong passphrase.');
+    } finally {
+      setDecrypting(false);
+    }
+  }
 
   return (
     <main className="flex min-h-svh items-center justify-center p-6">
@@ -135,10 +178,51 @@ export function SharedItemView({ token }: { token: string }) {
           <CardContent className="py-12 text-center">
             <p className="font-medium">This link can&rsquo;t be opened</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              It may be invalid, expired, or already viewed. One-time links work
-              exactly once.
+              It may be invalid, expired, or already fully consumed.
             </p>
           </CardContent>
+        )}
+
+        {status === 'passphrase' && (
+          <>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="size-4 text-muted-foreground" aria-hidden />
+                Passphrase required
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={tryPassphrase} className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  The sender protected this share with a passphrase. Enter it
+                  to decrypt the item locally.
+                </p>
+                <Input
+                  type="password"
+                  value={passphrase}
+                  onChange={(e) => setPassphrase(e.target.value)}
+                  placeholder="Passphrase"
+                  autoFocus
+                  aria-label="Passphrase"
+                />
+                {passError && (
+                  <p className="text-sm text-destructive" role="alert">
+                    {passError}
+                  </p>
+                )}
+                <Button
+                  type="submit"
+                  disabled={decrypting || passphrase.length === 0}
+                  className="w-full gap-1.5"
+                >
+                  {decrypting && (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  )}
+                  Decrypt
+                </Button>
+              </form>
+            </CardContent>
+          </>
         )}
 
         {status === 'ready' && payload && (

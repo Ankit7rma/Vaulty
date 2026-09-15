@@ -91,6 +91,9 @@ model Share {
   // pre-existing rows valid; new rows always populate it.
   createdBy String?
   creator   User?    @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+  // Argon2id salt (base64) when a passphrase was combined with the URL
+  // fragment key. Absent = fragment key alone unlocks the ciphertext.
+  passSalt  String?
 
   @@index([createdBy, createdAt])
 }

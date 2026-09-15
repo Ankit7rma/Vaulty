@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { getSession } from '@/lib/auth/cookies';
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -65,4 +66,24 @@ export async function GET(_request: Request, { params }: Params) {
     { cipher: result.cipher, iv: result.iv, remaining: result.remaining },
     { headers: { 'Cache-Control': 'no-store' } },
   );
+}
+
+/**
+ * Revokes an active share. Only the user who created it can revoke; the check
+ * lives in the deleteMany filter so a missing / stranger-owned token returns
+ * a plain 404.
+ */
+export async function DELETE(_request: Request, { params }: Params) {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const { token } = await params;
+  const result = await prisma.share.deleteMany({
+    where: { token, createdBy: session.userId },
+  });
+  if (result.count === 0) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  return NextResponse.json({ ok: true });
 }

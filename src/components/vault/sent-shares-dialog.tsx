@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, Share2 } from 'lucide-react';
+import { Loader2, Share2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -83,6 +83,7 @@ export function SentSharesDialog({ open, onOpenChange }: SentSharesDialogProps) 
 function SentSharesBody() {
   const [shares, setShares] = useState<SentShare[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,6 +102,19 @@ function SentSharesBody() {
       cancelled = true;
     };
   }, []);
+
+  async function revoke(share: SentShare) {
+    setRevokingId(share.id);
+    try {
+      const res = await fetch(`/api/share/${share.token}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('revoke failed');
+      setShares((prev) => (prev ?? []).filter((s) => s.id !== share.id));
+    } catch {
+      setError('Could not revoke that share.');
+    } finally {
+      setRevokingId(null);
+    }
+  }
 
   if (error) {
     return (
@@ -130,29 +144,47 @@ function SentSharesBody() {
         const remaining = share.maxViews - share.viewCount;
         const expired = new Date(share.expiresAt) < new Date();
         return (
-          <li key={share.id} className="space-y-1 p-3">
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="truncate font-mono text-xs">
-                #{share.token.slice(0, 12)}
-              </p>
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                  expired
-                    ? 'bg-muted text-muted-foreground'
-                    : remaining === 0
+          <li key={share.id} className="flex items-start gap-2 p-3">
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="truncate font-mono text-xs">
+                  #{share.token.slice(0, 12)}
+                </p>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                    expired
                       ? 'bg-muted text-muted-foreground'
-                      : 'bg-primary/15 text-primary'
-                }`}
-              >
-                {expired
-                  ? 'Expired'
-                  : `${remaining} of ${share.maxViews} left`}
-              </span>
+                      : remaining === 0
+                        ? 'bg-muted text-muted-foreground'
+                        : 'bg-primary/15 text-primary'
+                  }`}
+                >
+                  {expired
+                    ? 'Expired'
+                    : `${remaining} of ${share.maxViews} left`}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Created {relative(share.createdAt)} · Expires{' '}
+                {relative(share.expiresAt)} ({formatWhen(share.expiresAt)})
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Created {relative(share.createdAt)} · Expires{' '}
-              {relative(share.expiresAt)} ({formatWhen(share.expiresAt)})
-            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={() => revoke(share)}
+              disabled={revokingId !== null}
+              aria-label="Revoke share"
+              title="Revoke this share"
+              className="text-muted-foreground hover:text-destructive"
+            >
+              {revokingId === share.id ? (
+                <Loader2 className="animate-spin" aria-hidden />
+              ) : (
+                <X aria-hidden />
+              )}
+            </Button>
           </li>
         );
       })}

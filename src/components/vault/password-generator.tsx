@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { RefreshCw, Sliders, Wand2 } from 'lucide-react';
+import { Clock, RefreshCw, Sliders, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -150,9 +150,24 @@ export function PasswordGenerator({
   );
   const [value, setValue] = useState('');
   const [advanced, setAdvanced] = useState(false);
+  const [history, setHistory] = useState<string[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  function pushHistory(candidate: string) {
+    if (!candidate) return;
+    setHistory((prev) => {
+      if (prev[0] === candidate) return prev;
+      return [candidate, ...prev.filter((v) => v !== candidate)].slice(0, 8);
+    });
+  }
+
+  function updateValue(next: string) {
+    if (value) pushHistory(value);
+    setValue(next);
+  }
 
   function regenerate(nextMode: Mode = mode) {
-    setValue(
+    updateValue(
       nextMode === 'chars'
         ? generateChars(charOpts)
         : nextMode === 'passphrase'
@@ -166,17 +181,17 @@ export function PasswordGenerator({
       return;
     }
     setCharOpts(next);
-    setValue(generateChars(next));
+    updateValue(generateChars(next));
   }
 
   function applyPhraseOpts(next: PassphraseOptions) {
     setPhraseOpts(next);
-    setValue(generateWords(next));
+    updateValue(generateWords(next));
   }
 
   function applySyllableOpts(next: PronounceableOptions) {
     setSyllableOpts(next);
-    setValue(generateSyllables(next));
+    updateValue(generateSyllables(next));
   }
 
   function switchMode(next: Mode) {
@@ -186,7 +201,14 @@ export function PasswordGenerator({
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
-    if (next) regenerate();
+    if (next) {
+      regenerate();
+    } else {
+      // Wipe the session history when the popover closes so candidates never
+      // linger in memory across separate uses.
+      setHistory([]);
+      setHistoryOpen(false);
+    }
   }
 
   return (
@@ -240,8 +262,47 @@ export function PasswordGenerator({
           >
             <RefreshCw />
           </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => setHistoryOpen((v) => !v)}
+            aria-label={
+              historyOpen ? 'Hide session history' : 'Show session history'
+            }
+            aria-pressed={historyOpen}
+            title="Session history"
+            disabled={history.length === 0}
+          >
+            <Clock />
+          </Button>
           <CopyButton value={value} label="generated password" />
         </div>
+
+        {historyOpen && history.length > 0 && (
+          <div className="space-y-1 rounded-md border bg-muted/30 p-2">
+            <p className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+              This session ({history.length})
+            </p>
+            <ul className="max-h-32 space-y-0.5 overflow-y-auto">
+              {history.map((h, i) => (
+                <li key={`${h}-${i}`}>
+                  <button
+                    type="button"
+                    onClick={() => setValue(h)}
+                    className="w-full truncate rounded px-1.5 py-1 text-left font-mono text-xs hover:bg-muted"
+                    title="Use this candidate"
+                  >
+                    {h}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <p className="text-[10px] text-muted-foreground">
+              History is wiped when the popover closes.
+            </p>
+          </div>
+        )}
 
         {mode === 'pronounceable' ? (
           <>

@@ -30,10 +30,12 @@ import {
 import { OnboardingTour, useTourCompleted } from './onboarding-tour';
 import { ExportDialog } from './export-dialog';
 import { ImportDialog } from './import-dialog';
+import { SentSharesDialog } from './sent-shares-dialog';
 import { normalizeTags } from '@/lib/vault/items';
 import {
   Download,
   LayoutTemplate,
+  Share2,
   ShieldCheck,
   Sparkles,
   Upload,
@@ -72,6 +74,7 @@ function VaultAppInner({
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [sharesOpen, setSharesOpen] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const changelogHasUpdates = useChangelogHasUpdates();
   const tourCompleted = useTourCompleted();
@@ -331,6 +334,15 @@ function VaultAppInner({
               </Button>
               <Button
                 variant="outline"
+                size="icon"
+                onClick={() => setSharesOpen(true)}
+                aria-label="Sent shares"
+                title="Sent shares"
+              >
+                <Share2 />
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => setEditing({ type: 'login' })}
               >
                 <KeyRound /> Add login
@@ -533,6 +545,8 @@ function VaultAppInner({
           }
         }}
       />
+
+      <SentSharesDialog open={sharesOpen} onOpenChange={setSharesOpen} />
     </main>
   );
 }

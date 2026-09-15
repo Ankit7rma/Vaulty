@@ -40,8 +40,36 @@ export async function POST(request: Request) {
   );
 
   await prisma.share.create({
-    data: { token, cipher, iv, expiresAt, maxViews: maxViews ?? 1 },
+    data: {
+      token,
+      cipher,
+      iv,
+      expiresAt,
+      maxViews: maxViews ?? 1,
+      createdBy: session.userId,
+    },
   });
 
   return NextResponse.json({ token }, { status: 201 });
+}
+
+/** Lists shares created by the current user, newest first. Excludes ciphertext. */
+export async function GET() {
+  const session = await getSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const shares = await prisma.share.findMany({
+    where: { createdBy: session.userId },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      token: true,
+      createdAt: true,
+      expiresAt: true,
+      maxViews: true,
+      viewCount: true,
+    },
+  });
+  return NextResponse.json({ shares });
 }

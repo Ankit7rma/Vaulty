@@ -98,6 +98,18 @@ export interface PassphraseOptions {
   includeNumber?: boolean;
 }
 
+export interface PronounceableOptions {
+  syllables: number;
+  separator?: string;
+  capitalize?: boolean;
+  includeNumber?: boolean;
+}
+
+// English-frequency-weighted consonants/vowels for realistic-sounding output.
+// "y" appears in both sides intentionally since it functions as both.
+const CONSONANTS = 'bcdfghjklmnpqrstvwxyz';
+const VOWELS = 'aeiouy';
+
 /**
  * Diceware-style passphrase. Each word is chosen uniformly from WORD_LIST
  * with rejection sampling (no modulo bias). Default 5 words = ~45 bits.
@@ -120,4 +132,29 @@ export function generatePassphrase(options: PassphraseOptions): string {
     picks.push(String(randomInt(10_000)));
   }
   return picks.join(separator);
+}
+
+/**
+ * Pronounceable password: alternating consonant/vowel/consonant syllables
+ * ("da-vok-tin-fez") that are easy to read aloud. Entropy per syllable is
+ * ~log2(21*6*21) = ~11.4 bits, so a 5-syllable output clears 57 bits.
+ */
+export function generatePronounceable(options: PronounceableOptions): string {
+  const { syllables } = options;
+  if (!Number.isInteger(syllables) || syllables < 2 || syllables > 10) {
+    throw new Error('syllables must be an integer between 2 and 10');
+  }
+  const separator = options.separator ?? '-';
+  const parts: string[] = [];
+  for (let i = 0; i < syllables; i++) {
+    let syllable = pick(CONSONANTS) + pick(VOWELS) + pick(CONSONANTS);
+    if (options.capitalize) {
+      syllable = syllable[0].toUpperCase() + syllable.slice(1);
+    }
+    parts.push(syllable);
+  }
+  if (options.includeNumber) {
+    parts.push(String(randomInt(1_000)));
+  }
+  return parts.join(separator);
 }

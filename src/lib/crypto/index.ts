@@ -35,7 +35,9 @@ export {
 export {
   generatePassword,
   generatePassphrase,
+  generatePronounceable,
   type PasswordOptions,
   type PassphraseOptions,
+  type PronounceableOptions,
 } from './password';
 export { createVerifyBlob, verifyKey, VERIFY_MARKER } from './verify';

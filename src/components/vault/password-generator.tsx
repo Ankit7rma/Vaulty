@@ -15,11 +15,13 @@ import { CopyButton } from './copy-button';
 import {
   generatePassphrase,
   generatePassword,
+  generatePronounceable,
   type PassphraseOptions,
   type PasswordOptions,
+  type PronounceableOptions,
 } from '@/lib/crypto';
 
-type Mode = 'chars' | 'passphrase';
+type Mode = 'chars' | 'passphrase' | 'pronounceable';
 
 const DEFAULT_CHAR_OPTIONS: PasswordOptions = {
   length: 20,
@@ -32,6 +34,13 @@ const DEFAULT_CHAR_OPTIONS: PasswordOptions = {
 
 const DEFAULT_PASSPHRASE_OPTIONS: PassphraseOptions = {
   words: 5,
+  separator: '-',
+  capitalize: false,
+  includeNumber: false,
+};
+
+const DEFAULT_PRONOUNCEABLE_OPTIONS: PronounceableOptions = {
+  syllables: 5,
   separator: '-',
   capitalize: false,
   includeNumber: false,
@@ -61,6 +70,14 @@ function generateWords(options: PassphraseOptions): string {
   }
 }
 
+function generateSyllables(options: PronounceableOptions): string {
+  try {
+    return generatePronounceable(options);
+  } catch {
+    return '';
+  }
+}
+
 export function PasswordGenerator({
   onUse,
 }: {
@@ -72,13 +89,18 @@ export function PasswordGenerator({
   const [phraseOpts, setPhraseOpts] = useState<PassphraseOptions>(
     DEFAULT_PASSPHRASE_OPTIONS,
   );
+  const [syllableOpts, setSyllableOpts] = useState<PronounceableOptions>(
+    DEFAULT_PRONOUNCEABLE_OPTIONS,
+  );
   const [value, setValue] = useState('');
 
   function regenerate(nextMode: Mode = mode) {
     setValue(
       nextMode === 'chars'
         ? generateChars(charOpts)
-        : generateWords(phraseOpts),
+        : nextMode === 'passphrase'
+          ? generateWords(phraseOpts)
+          : generateSyllables(syllableOpts),
     );
   }
 
@@ -93,6 +115,11 @@ export function PasswordGenerator({
   function applyPhraseOpts(next: PassphraseOptions) {
     setPhraseOpts(next);
     setValue(generateWords(next));
+  }
+
+  function applySyllableOpts(next: PronounceableOptions) {
+    setSyllableOpts(next);
+    setValue(generateSyllables(next));
   }
 
   function switchMode(next: Mode) {
@@ -134,6 +161,12 @@ export function PasswordGenerator({
           >
             Passphrase
           </ModeChip>
+          <ModeChip
+            active={mode === 'pronounceable'}
+            onClick={() => switchMode('pronounceable')}
+          >
+            Pronounceable
+          </ModeChip>
         </div>
 
         <div className="flex items-center gap-1">
@@ -153,7 +186,83 @@ export function PasswordGenerator({
           <CopyButton value={value} label="generated password" />
         </div>
 
-        {mode === 'chars' ? (
+        {mode === 'pronounceable' ? (
+          <>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label>Syllables</Label>
+                <span className="text-sm tabular-nums text-muted-foreground">
+                  {syllableOpts.syllables}
+                </span>
+              </div>
+              <Slider
+                min={3}
+                max={10}
+                step={1}
+                value={syllableOpts.syllables}
+                onValueChange={(v) =>
+                  applySyllableOpts({
+                    ...syllableOpts,
+                    syllables: Array.isArray(v) ? v[0] : (v as number),
+                  })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="syl-sep" className="font-normal">
+                  Separator
+                </Label>
+                <select
+                  id="syl-sep"
+                  className="ml-auto h-7 rounded-md border border-input bg-transparent px-2 text-sm"
+                  value={syllableOpts.separator ?? '-'}
+                  onChange={(e) =>
+                    applySyllableOpts({
+                      ...syllableOpts,
+                      separator: e.target.value,
+                    })
+                  }
+                >
+                  <option value="-">- (dash)</option>
+                  <option value=".">. (dot)</option>
+                  <option value="">(none)</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="syl-caps"
+                  checked={Boolean(syllableOpts.capitalize)}
+                  onCheckedChange={(checked) =>
+                    applySyllableOpts({
+                      ...syllableOpts,
+                      capitalize: Boolean(checked),
+                    })
+                  }
+                />
+                <Label htmlFor="syl-caps" className="font-normal">
+                  Capitalize each syllable
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="syl-num"
+                  checked={Boolean(syllableOpts.includeNumber)}
+                  onCheckedChange={(checked) =>
+                    applySyllableOpts({
+                      ...syllableOpts,
+                      includeNumber: Boolean(checked),
+                    })
+                  }
+                />
+                <Label htmlFor="syl-num" className="font-normal">
+                  Append a random number
+                </Label>
+              </div>
+            </div>
+          </>
+        ) : mode === 'chars' ? (
           <>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">

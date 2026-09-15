@@ -6,6 +6,7 @@ import {
 } from './session'
 
 const VALID_SECRET = 'test-secret-at-least-16-chars-long'
+const JTI = 'test-jti-0123456789abcdef'
 
 beforeEach(() => {
   process.env.JWT_SECRET = VALID_SECRET
@@ -14,10 +15,15 @@ beforeEach(() => {
 
 describe('session tokens', () => {
   it('round-trips a valid session', async () => {
-    const token = await createSessionToken({ userId: 'u1', email: 'a@b.com' })
+    const token = await createSessionToken({
+      userId: 'u1',
+      email: 'a@b.com',
+      jti: JTI,
+    })
     expect(await verifySessionToken(token)).toEqual({
       userId: 'u1',
       email: 'a@b.com',
+      jti: JTI,
     })
   })
 
@@ -27,7 +33,11 @@ describe('session tokens', () => {
   })
 
   it('rejects a token signed with a different secret', async () => {
-    const token = await createSessionToken({ userId: 'u1', email: 'a@b.com' })
+    const token = await createSessionToken({
+      userId: 'u1',
+      email: 'a@b.com',
+      jti: JTI,
+    })
     process.env.JWT_SECRET = 'a-completely-different-secret-value'
     expect(await verifySessionToken(token)).toBeNull()
   })
@@ -35,11 +45,11 @@ describe('session tokens', () => {
   it('throws when JWT_SECRET is missing or too short', async () => {
     process.env.JWT_SECRET = 'short'
     await expect(
-      createSessionToken({ userId: 'u1', email: 'a@b.com' }),
+      createSessionToken({ userId: 'u1', email: 'a@b.com', jti: JTI }),
     ).rejects.toThrow()
     delete process.env.JWT_SECRET
     await expect(
-      createSessionToken({ userId: 'u1', email: 'a@b.com' }),
+      createSessionToken({ userId: 'u1', email: 'a@b.com', jti: JTI }),
     ).rejects.toThrow()
   })
 

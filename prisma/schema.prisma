@@ -38,6 +38,7 @@ model User {
   updatedAt   DateTime    @updatedAt
   items       VaultItem[]
   shares      Share[]
+  sessions    Session[]
 }
 
 model VaultItem {
@@ -71,6 +72,26 @@ model VaultItemHistory {
   savedAt   DateTime @default(now())
 
   @@index([itemId, savedAt])
+}
+
+// Server-side session record backing the JWT cookie. Signing out or "sign
+// out other devices" just deletes rows here so old JWTs stop verifying even
+// if their signature is still valid.
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // jti claim baked into the JWT. Random, opaque to the client.
+  jti        String   @unique
+  // Best-effort device hint for the sessions list.
+  userAgent  String?
+  // First IP octet(s), hashed. We deliberately do not store raw IPs.
+  ipHash     String?
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([userId, expiresAt])
 }
 
 // A one-time, expiring share of a single item. The ciphertext is encrypted with

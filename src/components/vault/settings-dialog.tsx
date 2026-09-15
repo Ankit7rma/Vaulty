@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Loader2, Settings } from 'lucide-react';
+import { AlertTriangle, Loader2, MonitorSmartphone, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -18,6 +18,7 @@ import { useSettings } from '@/lib/settings/settings-context';
 import { AUTO_LOCK_OPTIONS, CLIPBOARD_OPTIONS } from '@/lib/settings/settings';
 import { useVaultKey } from '@/lib/vault/vault-key-context';
 import { panicWipeLocal } from '@/lib/vault/panic-wipe';
+import { SessionsDialog } from './sessions-dialog';
 
 const SELECT_CLASS =
   'h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
@@ -26,6 +27,7 @@ export function SettingsDialog() {
   const [open, setOpen] = useState(false);
   const [panicConfirmOpen, setPanicConfirmOpen] = useState(false);
   const [panicking, setPanicking] = useState(false);
+  const [sessionsOpen, setSessionsOpen] = useState(false);
   const router = useRouter();
   const { lock } = useVaultKey();
   const { autoLockMinutes, clipboardClearSeconds, showFavicons, update } =
@@ -110,6 +112,16 @@ export function SettingsDialog() {
             </label>
           </div>
 
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full justify-start gap-2"
+            onClick={() => setSessionsOpen(true)}
+          >
+            <MonitorSmartphone className="size-4" aria-hidden />
+            Active sessions
+          </Button>
+
           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
             <div className="mb-2 flex items-start gap-2">
               <AlertTriangle
@@ -138,6 +150,8 @@ export function SettingsDialog() {
         </div>
         <DialogFooter showCloseButton />
       </DialogContent>
+
+      <SessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
 
       <Dialog open={panicConfirmOpen} onOpenChange={setPanicConfirmOpen}>
         <DialogContent className="sm:max-w-sm">

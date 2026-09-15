@@ -30,13 +30,21 @@ export async function GET(request: Request) {
   }
 
   try {
-    const { count } = await prisma.share.deleteMany({
-      where: { expiresAt: { lt: new Date() } },
+    const now = new Date();
+    const [shares, sessions] = await Promise.all([
+      prisma.share.deleteMany({ where: { expiresAt: { lt: now } } }),
+      prisma.session.deleteMany({ where: { expiresAt: { lt: now } } }),
+    ]);
+    log.info('cron.cleanup.success', {
+      deletedShares: shares.count,
+      deletedSessions: sessions.count,
     });
-    log.info('cron.cleanup_shares.success', { deleted: count });
-    return NextResponse.json({ deleted: count });
+    return NextResponse.json({
+      deletedShares: shares.count,
+      deletedSessions: sessions.count,
+    });
   } catch (error) {
-    log.error('cron.cleanup_shares.error', {
+    log.error('cron.cleanup.error', {
       message: error instanceof Error ? error.message : String(error),
     });
     return NextResponse.json({ error: 'Cleanup failed' }, { status: 500 });

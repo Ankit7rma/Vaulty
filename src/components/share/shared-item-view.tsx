@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { CopyButton } from '@/components/vault/copy-button';
 import { TotpCode } from '@/components/vault/totp-code';
 import { isValidTotpSecret } from '@/lib/vault/totp';
-import { openShare, type SharedPayload } from '@/lib/vault/share';
+import { openShare, type OpenedShare } from '@/lib/vault/share';
 import type { LoginFields, NoteFields } from '@/lib/vault/items';
 
 type Status = 'loading' | 'error' | 'ready';
@@ -99,7 +99,7 @@ function LoginView({ fields }: { fields: LoginFields }) {
 
 export function SharedItemView({ token }: { token: string }) {
   const [status, setStatus] = useState<Status>('loading');
-  const [payload, setPayload] = useState<SharedPayload | null>(null);
+  const [payload, setPayload] = useState<OpenedShare | null>(null);
   // Opening a one-time share is a destructive read, so it must happen exactly
   // once. This ref guards against React StrictMode's double-invoked effect,
   // which would otherwise consume the share on the first call and 404 on the
@@ -165,7 +165,10 @@ export function SharedItemView({ token }: { token: string }) {
                 </div>
               )}
               <p className="border-t pt-3 text-xs text-muted-foreground">
-                Shared securely with Vaulty. This link works only once.
+                Shared securely with Vaulty.{' '}
+                {payload.remaining === 0
+                  ? 'This link has now self-destructed.'
+                  : `${payload.remaining} view${payload.remaining === 1 ? '' : 's'} remaining.`}
               </p>
             </CardContent>
           </>

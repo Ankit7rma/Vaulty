@@ -34,12 +34,13 @@ export function ShareItem({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [expiryHours, setExpiryHours] = useState<number>(24);
+  const [maxViews, setMaxViews] = useState<number>(1);
 
   async function onShare() {
     setBusy(true);
     setError(null);
     try {
-      setUrl(await createShareLink(type, fields, expiryHours));
+      setUrl(await createShareLink(type, fields, expiryHours, maxViews));
       setCopied(false);
     } catch {
       setError('Could not create a share link.');
@@ -145,6 +146,21 @@ export function ShareItem({
                   {o.label}
                 </option>
               ))}
+            </select>
+          </label>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            Views
+            <select
+              value={maxViews}
+              onChange={(e) => setMaxViews(Number(e.target.value))}
+              disabled={busy}
+              className="h-7 rounded-md border border-input bg-transparent px-2 text-xs"
+              aria-label="Number of allowed views"
+            >
+              <option value={1}>1 (one-time)</option>
+              <option value={3}>3</option>
+              <option value={5}>5</option>
+              <option value={10}>10</option>
             </select>
           </label>
           <Button

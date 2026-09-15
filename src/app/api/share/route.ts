@@ -32,14 +32,16 @@ export async function POST(request: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid share payload' }, { status: 400 });
   }
-  const { cipher, iv, expiresInHours } = parsed.data;
+  const { cipher, iv, expiresInHours, maxViews } = parsed.data;
 
   const token = generateToken();
   const expiresAt = new Date(
     Date.now() + (expiresInHours ?? DEFAULT_EXPIRY_HOURS) * 60 * 60 * 1000,
   );
 
-  await prisma.share.create({ data: { token, cipher, iv, expiresAt } });
+  await prisma.share.create({
+    data: { token, cipher, iv, expiresAt, maxViews: maxViews ?? 1 },
+  });
 
   return NextResponse.json({ token }, { status: 201 });
 }

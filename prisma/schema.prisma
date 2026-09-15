@@ -82,4 +82,8 @@ model Share {
   iv        String
   createdAt DateTime @default(now())
   expiresAt DateTime
+  // Number of times this share can be opened before it self-destructs.
+  // Defaults to 1 so pre-existing rows keep their original one-shot behavior.
+  maxViews  Int      @default(1)
+  viewCount Int      @default(0)
 }

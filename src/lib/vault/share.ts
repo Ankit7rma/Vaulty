@@ -34,6 +34,7 @@ export async function createShareLink(
   type: ItemType,
   fields: ItemFields,
   expiresInHours = 24,
+  maxViews = 1,
 ): Promise<string> {
   const rawKey = crypto.getRandomValues(new Uint8Array(32));
   const key = await crypto.subtle.importKey(
@@ -49,7 +50,12 @@ export async function createShareLink(
   const res = await fetch('/api/share', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ cipher: blob.cipher, iv: blob.iv, expiresInHours }),
+    body: JSON.stringify({
+      cipher: blob.cipher,
+      iv: blob.iv,
+      expiresInHours,
+      maxViews,
+    }),
   });
   if (!res.ok) throw new Error('share failed');
   const { token } = (await res.json()) as { token: string };
@@ -58,15 +64,24 @@ export async function createShareLink(
   return `${window.location.origin}/share/${token}#${bytesToBase64Url(rawKey)}`;
 }
 
+export interface OpenedShare extends SharedPayload {
+  /** Views remaining after this call (0 on the last read). */
+  remaining: number;
+}
+
 export async function openShare(
   token: string,
   keyFromFragment: string,
-): Promise<SharedPayload> {
+): Promise<OpenedShare> {
   // no-store so the destructive read always reaches the server; a cached 200
   // would let a consumed link appear to open again.
   const res = await fetch(`/api/share/${token}`, { cache: 'no-store' });
   if (!res.ok) throw new Error('share not available');
-  const { cipher, iv } = (await res.json()) as { cipher: string; iv: string };
+  const { cipher, iv, remaining } = (await res.json()) as {
+    cipher: string;
+    iv: string;
+    remaining?: number;
+  };
 
   const key = await crypto.subtle.importKey(
     'raw',
@@ -75,5 +90,6 @@ export async function openShare(
     false,
     ['decrypt'],
   );
-  return decryptJson<SharedPayload>(key, { cipher, iv });
+  const payload = await decryptJson<SharedPayload>(key, { cipher, iv });
+  return { ...payload, remaining: remaining ?? 0 };
 }

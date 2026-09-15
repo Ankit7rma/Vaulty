@@ -37,6 +37,10 @@ model User {
   // Optional server-side login allowlist. Empty = accept any source IP.
   // Entries are CIDR ranges (e.g. "203.0.113.4/32", "10.0.0.0/8").
   ipAllowlist String[]    @default([])
+  // Base32 TOTP secret (RFC 6238). Null when 2FA is not enrolled.
+  totpSecret  String?
+  // True once the user has confirmed enrollment with a valid code.
+  totpEnabled Boolean     @default(false)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   items       VaultItem[]

@@ -10,7 +10,13 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { id: true, email: true, kdfSalt: true },
+    select: {
+      id: true,
+      email: true,
+      kdfSalt: true,
+      totpEnabled: true,
+      ipAllowlist: true,
+    },
   });
   if (!user) {
     return NextResponse.json({ user: null }, { status: 401 });
@@ -19,5 +25,7 @@ export async function GET() {
   return NextResponse.json({
     user: { id: user.id, email: user.email },
     onboarded: user.kdfSalt !== null,
+    totpEnabled: user.totpEnabled,
+    ipAllowlistCount: user.ipAllowlist.length,
   });
 }

@@ -2,7 +2,15 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertCircle, Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-react';
+import {
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Loader2,
+  Lock,
+  Mail,
+  ShieldCheck,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +22,8 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [pendingTotp, setPendingTotp] = useState<string | null>(null);
+  const [totpCode, setTotpCode] = useState('');
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -32,12 +42,113 @@ export function LoginForm() {
         return;
       }
       const data = await res.json();
+      if (data.requiresTotp && data.pending) {
+        setPendingTotp(data.pending);
+        setBusy(false);
+        return;
+      }
       // Onboarded users go straight to unlock; others finish setup first.
       router.push(data.onboarded ? '/unlock' : '/onboard');
     } catch {
       setError('Network error. Please try again.');
       setBusy(false);
     }
+  }
+
+  async function verifyTotp(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!pendingTotp) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const res = await fetch('/api/auth/login/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pending: pendingTotp, code: totpCode }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? 'Invalid code.');
+        setBusy(false);
+        return;
+      }
+      const data = await res.json();
+      router.push(data.onboarded ? '/unlock' : '/onboard');
+    } catch {
+      setError('Network error. Please try again.');
+      setBusy(false);
+    }
+  }
+
+  if (pendingTotp) {
+    return (
+      <form onSubmit={verifyTotp} className="space-y-4">
+        <div className="flex items-start gap-2.5 rounded-md border bg-muted/40 px-3 py-2.5 text-sm">
+          <ShieldCheck
+            className="mt-0.5 size-4 shrink-0 text-primary"
+            aria-hidden
+          />
+          <span>
+            Enter the 6-digit code from your authenticator app.
+          </span>
+        </div>
+
+        {error && (
+          <div
+            role="alert"
+            className="flex items-start gap-2.5 rounded-md border border-destructive/20 bg-destructive/8 px-3 py-2.5 text-sm text-destructive"
+          >
+            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <Label htmlFor="totp">One-time code</Label>
+          <Input
+            id="totp"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="one-time-code"
+            placeholder="123456"
+            required
+            autoFocus
+            value={totpCode}
+            onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
+            className="h-10 tracking-widest font-mono text-center text-lg"
+            maxLength={8}
+          />
+        </div>
+
+        <Button
+          type="submit"
+          size="lg"
+          className="mt-2 h-10 w-full text-sm font-medium"
+          disabled={busy || totpCode.length < 6}
+        >
+          {busy ? (
+            <>
+              <Loader2 className="size-4 animate-spin" aria-hidden />
+              Verifying...
+            </>
+          ) : (
+            'Verify'
+          )}
+        </Button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setPendingTotp(null);
+            setTotpCode('');
+            setError(null);
+          }}
+          className="w-full text-xs text-muted-foreground hover:text-foreground"
+        >
+          Back to sign in
+        </button>
+      </form>
+    );
   }
 
   return (

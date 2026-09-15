@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertTriangle,
@@ -9,6 +9,7 @@ import {
   MonitorSmartphone,
   Settings,
   ShieldCheck,
+  Smartphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +29,7 @@ import { panicWipeLocal } from '@/lib/vault/panic-wipe';
 import { SessionsDialog } from './sessions-dialog';
 import { AllowlistDialog } from './allowlist-dialog';
 import { AuditLogDialog } from './audit-log-dialog';
+import { TotpSetupDialog, TotpDisableDialog } from './totp-setup-dialog';
 
 const SELECT_CLASS =
   'h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
@@ -39,6 +41,24 @@ export function SettingsDialog() {
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [allowlistOpen, setAllowlistOpen] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
+  const [totpSetupOpen, setTotpSetupOpen] = useState(false);
+  const [totpDisableOpen, setTotpDisableOpen] = useState(false);
+  const [totpEnabled, setTotpEnabled] = useState(false);
+  const [meTick, setMeTick] = useState(0);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    fetch('/api/auth/me', { cache: 'no-store' })
+      .then(async (res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data) setTotpEnabled(Boolean(data.totpEnabled));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [open, meTick]);
   const router = useRouter();
   const { lock } = useVaultKey();
   const { autoLockMinutes, clipboardClearSeconds, showFavicons, update } =
@@ -153,6 +173,27 @@ export function SettingsDialog() {
             Audit log
           </Button>
 
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full justify-start gap-2"
+            onClick={() =>
+              totpEnabled ? setTotpDisableOpen(true) : setTotpSetupOpen(true)
+            }
+          >
+            <Smartphone className="size-4" aria-hidden />
+            Two-factor authentication
+            <span
+              className={`ml-auto rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                totpEnabled
+                  ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-500'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {totpEnabled ? 'On' : 'Off'}
+            </span>
+          </Button>
+
           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
             <div className="mb-2 flex items-start gap-2">
               <AlertTriangle
@@ -185,6 +226,16 @@ export function SettingsDialog() {
       <SessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
       <AllowlistDialog open={allowlistOpen} onOpenChange={setAllowlistOpen} />
       <AuditLogDialog open={auditOpen} onOpenChange={setAuditOpen} />
+      <TotpSetupDialog
+        open={totpSetupOpen}
+        onOpenChange={setTotpSetupOpen}
+        onEnabled={() => setMeTick((t) => t + 1)}
+      />
+      <TotpDisableDialog
+        open={totpDisableOpen}
+        onOpenChange={setTotpDisableOpen}
+        onDisabled={() => setMeTick((t) => t + 1)}
+      />
 
       <Dialog open={panicConfirmOpen} onOpenChange={setPanicConfirmOpen}>
         <DialogContent className="sm:max-w-sm">

@@ -7,6 +7,7 @@ import { logger } from '@/lib/logger';
 import { rateLimit } from '@/lib/rate-limit';
 import { ipFromRequest, isIpAllowed } from '@/lib/auth/ip-allowlist';
 import { recordAudit } from '@/lib/auth/audit';
+import { createPendingTotpToken } from '@/lib/auth/pending-token';
 
 // Decoy hash computed once, used to keep login timing roughly constant whether
 // or not the email exists, so response time does not reveal registered emails.
@@ -99,6 +100,17 @@ export async function POST(request: Request) {
           { status: 403 },
         );
       }
+    }
+
+    // 2FA gate: if TOTP is enabled we don't start the session yet. The client
+    // finishes with POST /api/auth/login/verify + the pending token.
+    if (user.totpEnabled) {
+      const pending = await createPendingTotpToken(user.id);
+      log.info('login.totp_required', { userId: user.id });
+      return NextResponse.json({
+        requiresTotp: true,
+        pending,
+      });
     }
 
     await startSession({ userId: user.id, email: user.email });

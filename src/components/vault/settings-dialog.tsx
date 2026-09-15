@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertTriangle,
+  Fingerprint,
   History,
   Loader2,
   MonitorSmartphone,
@@ -30,6 +31,7 @@ import { SessionsDialog } from './sessions-dialog';
 import { AllowlistDialog } from './allowlist-dialog';
 import { AuditLogDialog } from './audit-log-dialog';
 import { TotpSetupDialog, TotpDisableDialog } from './totp-setup-dialog';
+import { PasskeySetupDialog } from './passkey-setup-dialog';
 
 const SELECT_CLASS =
   'h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
@@ -43,6 +45,7 @@ export function SettingsDialog() {
   const [auditOpen, setAuditOpen] = useState(false);
   const [totpSetupOpen, setTotpSetupOpen] = useState(false);
   const [totpDisableOpen, setTotpDisableOpen] = useState(false);
+  const [passkeyOpen, setPasskeyOpen] = useState(false);
   const [totpEnabled, setTotpEnabled] = useState(false);
   const [meTick, setMeTick] = useState(0);
 
@@ -177,6 +180,16 @@ export function SettingsDialog() {
             type="button"
             variant="outline"
             className="w-full justify-start gap-2"
+            onClick={() => setPasskeyOpen(true)}
+          >
+            <Fingerprint className="size-4" aria-hidden />
+            Register a passkey
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full justify-start gap-2"
             onClick={() =>
               totpEnabled ? setTotpDisableOpen(true) : setTotpSetupOpen(true)
             }
@@ -235,6 +248,10 @@ export function SettingsDialog() {
         open={totpDisableOpen}
         onOpenChange={setTotpDisableOpen}
         onDisabled={() => setMeTick((t) => t + 1)}
+      />
+      <PasskeySetupDialog
+        open={passkeyOpen}
+        onOpenChange={setPasskeyOpen}
       />
 
       <Dialog open={panicConfirmOpen} onOpenChange={setPanicConfirmOpen}>

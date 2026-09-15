@@ -27,6 +27,11 @@ const schema = z.object({
   // which are fine for dev but do NOT protect prod deployments correctly.
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+  // WebAuthn Relying Party. Both are derived from APP_URL when unset, but
+  // some hosts (behind a proxy that rewrites the host header) need explicit
+  // values so the origin check on assertions doesn't fail.
+  WEBAUTHN_RP_ID: z.string().min(1).optional(),
+  WEBAUTHN_RP_ORIGIN: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof schema>;

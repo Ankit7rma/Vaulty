@@ -47,6 +47,26 @@ model User {
   shares      Share[]
   sessions    Session[]
   auditEvents AuditEvent[]
+  passkeys    PasskeyCredential[]
+}
+
+// WebAuthn credential registered by a user. `publicKey` and `counter` are the
+// server's authoritative record; every future assertion is verified against
+// them. `credentialId` is the browser-visible handle.
+model PasskeyCredential {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // base64url-encoded credential id from the authenticator
+  credentialId String   @unique
+  publicKey    Bytes
+  counter      BigInt   @default(0)
+  transports   String[] @default([])
+  label        String?
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime @default(now())
+
+  @@index([userId])
 }
 
 model VaultItem {

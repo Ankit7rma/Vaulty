@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PasskeySignInButton } from './passkey-signin-button';
 
 export function LoginForm() {
   const router = useRouter();
@@ -231,6 +232,14 @@ export function LoginForm() {
           'Sign in'
         )}
       </Button>
+
+      <div className="flex items-center gap-3 text-[10px] font-medium tracking-wider text-muted-foreground uppercase">
+        <span className="h-px flex-1 bg-border" />
+        or
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      <PasskeySignInButton />
     </form>
   );
 }

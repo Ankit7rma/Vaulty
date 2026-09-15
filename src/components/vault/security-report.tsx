@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Calendar,
   KeyRound,
   Loader2,
   RefreshCw,
@@ -18,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import {
+  findAgingPasswords,
   findDuplicates,
   findReusedPasswords,
   findWeakPasswords,
@@ -43,6 +45,7 @@ export function SecurityReport({
   const duplicates = useMemo(() => findDuplicates(items), [items]);
   const weak = useMemo(() => findWeakPasswords(items), [items]);
   const reused = useMemo(() => findReusedPasswords(items), [items]);
+  const aging = useMemo(() => findAgingPasswords(items, 365), [items]);
   const [breach, setBreach] = useState<
     | { status: 'idle' }
     | { status: 'scanning'; progress: BreachScanProgress }
@@ -88,6 +91,7 @@ export function SecurityReport({
     duplicates.length > 0 ||
     weak.length > 0 ||
     reused.length > 0 ||
+    aging.length > 0 ||
     breachedCount > 0;
 
   function jumpTo(id: string) {
@@ -246,6 +250,37 @@ export function SecurityReport({
                         </li>
                       ))}
                     </ul>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </ReportSection>
+
+          <ReportSection
+            title="Aging passwords"
+            hint="Not touched in over a year. Consider rotating."
+            count={aging.length}
+            icon={<Calendar className="size-4" aria-hidden />}
+            tone="warning"
+          >
+            {aging.length === 0 ? (
+              <EmptyRow text="Nothing older than a year." />
+            ) : (
+              <ul className="space-y-1.5">
+                {aging.map(({ item, ageDays }) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => jumpTo(item.id)}
+                      className="flex w-full items-center gap-2 rounded-md border bg-background px-3 py-2 text-left text-sm hover:bg-muted"
+                    >
+                      <span className="min-w-0 flex-1 truncate font-medium">
+                        {item.title}
+                      </span>
+                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {Math.floor(ageDays / 30)} months old
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ul>

@@ -14,6 +14,13 @@ import { useClipboard } from '@/lib/vault/use-clipboard';
 import { createShareLink } from '@/lib/vault/share';
 import type { ItemFields, ItemType } from '@/lib/vault/items';
 
+const EXPIRY_OPTIONS: Array<{ label: string; hours: number }> = [
+  { label: '1 hour', hours: 1 },
+  { label: '24 hours', hours: 24 },
+  { label: '7 days', hours: 24 * 7 },
+  { label: '30 days', hours: 24 * 30 },
+];
+
 export function ShareItem({
   type,
   fields,
@@ -26,12 +33,13 @@ export function ShareItem({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [expiryHours, setExpiryHours] = useState<number>(24);
 
   async function onShare() {
     setBusy(true);
     setError(null);
     try {
-      setUrl(await createShareLink(type, fields));
+      setUrl(await createShareLink(type, fields, expiryHours));
       setCopied(false);
     } catch {
       setError('Could not create a share link.');
@@ -122,26 +130,44 @@ export function ShareItem({
           </div>
         </div>
       ) : (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onShare}
-          disabled={busy}
-          className="w-full gap-1.5 sm:w-auto"
-        >
-          {busy ? (
-            <>
-              <Loader2 className="size-3.5 animate-spin" aria-hidden />
-              Creating link...
-            </>
-          ) : (
-            <>
-              <Share2 className="size-3.5" aria-hidden />
-              Generate share link
-            </>
-          )}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            Expires in
+            <select
+              value={expiryHours}
+              onChange={(e) => setExpiryHours(Number(e.target.value))}
+              disabled={busy}
+              className="h-7 rounded-md border border-input bg-transparent px-2 text-xs"
+              aria-label="Share expiry"
+            >
+              {EXPIRY_OPTIONS.map((o) => (
+                <option key={o.hours} value={o.hours}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onShare}
+            disabled={busy}
+            className="ml-auto gap-1.5"
+          >
+            {busy ? (
+              <>
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                Creating link...
+              </>
+            ) : (
+              <>
+                <Share2 className="size-3.5" aria-hidden />
+                Generate share link
+              </>
+            )}
+          </Button>
+        </div>
       )}
     </section>
   );

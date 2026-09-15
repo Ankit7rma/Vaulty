@@ -10,6 +10,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { useClipboard } from '@/lib/vault/use-clipboard';
 import { createShareLink } from '@/lib/vault/share';
 import type { ItemFields, ItemType } from '@/lib/vault/items';
@@ -35,12 +36,15 @@ export function ShareItem({
   const [copied, setCopied] = useState(false);
   const [expiryHours, setExpiryHours] = useState<number>(24);
   const [maxViews, setMaxViews] = useState<number>(1);
+  const [note, setNote] = useState<string>('');
 
   async function onShare() {
     setBusy(true);
     setError(null);
     try {
-      setUrl(await createShareLink(type, fields, expiryHours, maxViews));
+      setUrl(
+        await createShareLink(type, fields, expiryHours, maxViews, note),
+      );
       setCopied(false);
     } catch {
       setError('Could not create a share link.');
@@ -131,6 +135,15 @@ export function ShareItem({
           </div>
         </div>
       ) : (
+        <div className="space-y-2">
+          <Textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Optional note for the recipient (encrypted with the item)"
+            rows={2}
+            className="text-xs"
+            aria-label="Message for the recipient"
+          />
         <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
             Expires in
@@ -183,6 +196,7 @@ export function ShareItem({
               </>
             )}
           </Button>
+        </div>
         </div>
       )}
     </section>

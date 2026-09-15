@@ -17,6 +17,8 @@ import type { ItemFields, ItemType } from './items';
 export interface SharedPayload {
   type: ItemType;
   fields: ItemFields;
+  /** Optional message from the sender, encrypted with the same key as fields. */
+  note?: string;
 }
 
 function bytesToBase64Url(bytes: Uint8Array): string {
@@ -35,6 +37,7 @@ export async function createShareLink(
   fields: ItemFields,
   expiresInHours = 24,
   maxViews = 1,
+  note?: string,
 ): Promise<string> {
   const rawKey = crypto.getRandomValues(new Uint8Array(32));
   const key = await crypto.subtle.importKey(
@@ -45,7 +48,11 @@ export async function createShareLink(
     ['encrypt'],
   );
 
-  const blob = await encryptJson(key, { type, fields } satisfies SharedPayload);
+  const trimmedNote = note?.trim();
+  const payload: SharedPayload = trimmedNote
+    ? { type, fields, note: trimmedNote }
+    : { type, fields };
+  const blob = await encryptJson(key, payload);
 
   const res = await fetch('/api/share', {
     method: 'POST',

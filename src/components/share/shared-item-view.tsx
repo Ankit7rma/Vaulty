@@ -154,6 +154,16 @@ export function SharedItemView({ token }: { token: string }) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {payload.note && (
+                <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
+                  <p className="mb-1 text-xs font-medium text-primary">
+                    Message from the sender
+                  </p>
+                  <p className="text-sm whitespace-pre-wrap">
+                    {payload.note}
+                  </p>
+                </div>
+              )}
               {payload.type === 'login' ? (
                 <LoginView fields={payload.fields as LoginFields} />
               ) : (

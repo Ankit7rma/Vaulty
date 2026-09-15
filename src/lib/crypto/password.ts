@@ -14,6 +14,10 @@ export interface PasswordOptions {
   symbols?: boolean;
   /** drop visually confusable characters (0/O, 1/l/I, etc.) */
   excludeAmbiguous?: boolean;
+  /** Explicit characters to remove from every enabled set. */
+  excludeChars?: string;
+  /** Override the built-in symbol set with a custom one. */
+  customSymbols?: string;
 }
 
 const CHAR_SETS = {
@@ -51,6 +55,12 @@ function filterAmbiguous(chars: string, exclude: boolean | undefined): string {
   return [...chars].filter((c) => !AMBIGUOUS.has(c)).join('');
 }
 
+function filterExcluded(chars: string, exclude: string | undefined): string {
+  if (!exclude) return chars;
+  const set = new Set([...exclude]);
+  return [...chars].filter((c) => !set.has(c)).join('');
+}
+
 export function generatePassword(options: PasswordOptions): string {
   const { length } = options;
   if (!Number.isInteger(length) || length < 1) {
@@ -61,13 +71,16 @@ export function generatePassword(options: PasswordOptions): string {
   if (options.uppercase) enabled.push(CHAR_SETS.uppercase);
   if (options.lowercase) enabled.push(CHAR_SETS.lowercase);
   if (options.numbers) enabled.push(CHAR_SETS.numbers);
-  if (options.symbols) enabled.push(CHAR_SETS.symbols);
+  if (options.symbols) {
+    enabled.push(options.customSymbols?.trim() || CHAR_SETS.symbols);
+  }
   if (enabled.length === 0) {
     throw new Error('at least one character set must be enabled');
   }
 
   const pools = enabled
     .map((set) => filterAmbiguous(set, options.excludeAmbiguous))
+    .map((set) => filterExcluded(set, options.excludeChars))
     .filter((set) => set.length > 0);
   if (pools.length === 0) {
     throw new Error('no characters available after exclusions');

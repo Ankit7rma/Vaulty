@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { RefreshCw, Wand2 } from 'lucide-react';
+import { RefreshCw, Sliders, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -31,6 +32,61 @@ const DEFAULT_CHAR_OPTIONS: PasswordOptions = {
   symbols: true,
   excludeAmbiguous: false,
 };
+
+interface CharPreset {
+  id: string;
+  label: string;
+  options: PasswordOptions;
+}
+
+const CHAR_PRESETS: CharPreset[] = [
+  { id: 'default', label: 'Default', options: DEFAULT_CHAR_OPTIONS },
+  {
+    id: 'no-symbols',
+    label: 'No symbols (some banks)',
+    options: {
+      length: 16,
+      uppercase: true,
+      lowercase: true,
+      numbers: true,
+      symbols: false,
+    },
+  },
+  {
+    id: 'alnum',
+    label: 'Alphanumeric only',
+    options: {
+      length: 24,
+      uppercase: true,
+      lowercase: true,
+      numbers: true,
+      symbols: false,
+    },
+  },
+  {
+    id: 'pin',
+    label: 'Numeric PIN',
+    options: {
+      length: 6,
+      uppercase: false,
+      lowercase: false,
+      numbers: true,
+      symbols: false,
+    },
+  },
+  {
+    id: 'safe-symbols',
+    label: 'Safe symbols only (!-_)',
+    options: {
+      length: 20,
+      uppercase: true,
+      lowercase: true,
+      numbers: true,
+      symbols: true,
+      customSymbols: '!-_',
+    },
+  },
+];
 
 const DEFAULT_PASSPHRASE_OPTIONS: PassphraseOptions = {
   words: 5,
@@ -93,6 +149,7 @@ export function PasswordGenerator({
     DEFAULT_PRONOUNCEABLE_OPTIONS,
   );
   const [value, setValue] = useState('');
+  const [advanced, setAdvanced] = useState(false);
 
   function regenerate(nextMode: Mode = mode) {
     setValue(
@@ -265,6 +322,30 @@ export function PasswordGenerator({
         ) : mode === 'chars' ? (
           <>
             <div className="space-y-1.5">
+              <Label htmlFor="gen-preset" className="text-xs">
+                Preset
+              </Label>
+              <select
+                id="gen-preset"
+                className="h-7 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+                onChange={(e) => {
+                  const preset = CHAR_PRESETS.find((p) => p.id === e.target.value);
+                  if (preset) applyCharOpts(preset.options);
+                }}
+                value=""
+              >
+                <option value="" disabled>
+                  Choose a preset...
+                </option>
+                {CHAR_PRESETS.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label>Length</Label>
                 <span className="text-sm tabular-nums text-muted-foreground">
@@ -272,7 +353,7 @@ export function PasswordGenerator({
                 </span>
               </div>
               <Slider
-                min={8}
+                min={4}
                 max={64}
                 step={1}
                 value={charOpts.length}
@@ -301,6 +382,54 @@ export function PasswordGenerator({
                 </div>
               ))}
             </div>
+
+            <button
+              type="button"
+              onClick={() => setAdvanced((a) => !a)}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <Sliders className="size-3" aria-hidden />
+              {advanced ? 'Hide advanced' : 'Show advanced'}
+            </button>
+
+            {advanced && (
+              <div className="space-y-2 rounded-md border bg-muted/30 p-2.5">
+                <div className="space-y-1">
+                  <Label htmlFor="gen-custom-symbols" className="text-xs">
+                    Custom symbols (overrides default)
+                  </Label>
+                  <Input
+                    id="gen-custom-symbols"
+                    value={charOpts.customSymbols ?? ''}
+                    onChange={(e) =>
+                      applyCharOpts({
+                        ...charOpts,
+                        customSymbols: e.target.value,
+                      })
+                    }
+                    placeholder="!@#$%^&*()-_=+"
+                    className="font-mono"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="gen-exclude" className="text-xs">
+                    Exclude these characters
+                  </Label>
+                  <Input
+                    id="gen-exclude"
+                    value={charOpts.excludeChars ?? ''}
+                    onChange={(e) =>
+                      applyCharOpts({
+                        ...charOpts,
+                        excludeChars: e.target.value,
+                      })
+                    }
+                    placeholder="e.g. spaces or specific quotes"
+                    className="font-mono"
+                  />
+                </div>
+              </div>
+            )}
           </>
         ) : (
           <>

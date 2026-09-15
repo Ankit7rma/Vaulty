@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertTriangle,
+  History,
   Loader2,
   MonitorSmartphone,
   Settings,
@@ -26,6 +27,7 @@ import { useVaultKey } from '@/lib/vault/vault-key-context';
 import { panicWipeLocal } from '@/lib/vault/panic-wipe';
 import { SessionsDialog } from './sessions-dialog';
 import { AllowlistDialog } from './allowlist-dialog';
+import { AuditLogDialog } from './audit-log-dialog';
 
 const SELECT_CLASS =
   'h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
@@ -36,6 +38,7 @@ export function SettingsDialog() {
   const [panicking, setPanicking] = useState(false);
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [allowlistOpen, setAllowlistOpen] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
   const router = useRouter();
   const { lock } = useVaultKey();
   const { autoLockMinutes, clipboardClearSeconds, showFavicons, update } =
@@ -140,6 +143,16 @@ export function SettingsDialog() {
             Login IP allowlist
           </Button>
 
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full justify-start gap-2"
+            onClick={() => setAuditOpen(true)}
+          >
+            <History className="size-4" aria-hidden />
+            Audit log
+          </Button>
+
           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
             <div className="mb-2 flex items-start gap-2">
               <AlertTriangle
@@ -171,6 +184,7 @@ export function SettingsDialog() {
 
       <SessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
       <AllowlistDialog open={allowlistOpen} onOpenChange={setAllowlistOpen} />
+      <AuditLogDialog open={auditOpen} onOpenChange={setAuditOpen} />
 
       <Dialog open={panicConfirmOpen} onOpenChange={setPanicConfirmOpen}>
         <DialogContent className="sm:max-w-sm">

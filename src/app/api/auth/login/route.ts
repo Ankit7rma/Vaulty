@@ -6,6 +6,7 @@ import { startSession } from '@/lib/auth/cookies';
 import { logger } from '@/lib/logger';
 import { rateLimit } from '@/lib/rate-limit';
 import { ipFromRequest, isIpAllowed } from '@/lib/auth/ip-allowlist';
+import { recordAudit } from '@/lib/auth/audit';
 
 // Decoy hash computed once, used to keep login timing roughly constant whether
 // or not the email exists, so response time does not reveal registered emails.
@@ -77,6 +78,9 @@ export async function POST(request: Request) {
 
     if (!user || !passwordOk) {
       log.info('login.rejected', { reason: user ? 'bad_password' : 'no_user' });
+      if (user) {
+        recordAudit(user.id, 'login.failed', { reason: 'bad_password' }, { request });
+      }
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
@@ -86,6 +90,7 @@ export async function POST(request: Request) {
       const ip = ipFromRequest(request);
       if (!isIpAllowed(ip, user.ipAllowlist)) {
         log.warn('login.ip_blocked', { userId: user.id });
+        recordAudit(user.id, 'login.ip_blocked', undefined, { request });
         return NextResponse.json(
           {
             error:
@@ -98,6 +103,7 @@ export async function POST(request: Request) {
 
     await startSession({ userId: user.id, email: user.email });
     log.info('login.success', { userId: user.id });
+    recordAudit(user.id, 'login.success', undefined, { request });
 
     return NextResponse.json({
       user: { id: user.id, email: user.email },

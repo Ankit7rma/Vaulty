@@ -4,6 +4,7 @@ import {
   deleteOtherSessions,
   listSessions,
 } from '@/lib/auth/session-store';
+import { recordAudit } from '@/lib/auth/audit';
 
 /** Lists live sessions for the current user (never returns the JWT). */
 export async function GET() {
@@ -26,11 +27,17 @@ export async function GET() {
 }
 
 /** Signs out every device except the caller's current one. */
-export async function DELETE() {
+export async function DELETE(request: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const removed = await deleteOtherSessions(session.userId, session.jti);
+  recordAudit(
+    session.userId,
+    'session.signout_others',
+    { removed },
+    { request },
+  );
   return NextResponse.json({ removed });
 }

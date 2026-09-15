@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth/cookies';
 import { shareInputSchema } from '@/lib/vault/schemas';
+import { recordAudit } from '@/lib/auth/audit';
 
 const DEFAULT_EXPIRY_HOURS = 24;
 
@@ -50,6 +51,16 @@ export async function POST(request: Request) {
       passSalt: passSalt ?? null,
     },
   });
+  recordAudit(
+    session.userId,
+    'share.created',
+    {
+      maxViews: maxViews ?? 1,
+      expiresInHours: expiresInHours ?? DEFAULT_EXPIRY_HOURS,
+      passphraseProtected: Boolean(passSalt),
+    },
+    { request },
+  );
 
   return NextResponse.json({ token }, { status: 201 });
 }

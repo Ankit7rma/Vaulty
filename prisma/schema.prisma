@@ -42,6 +42,7 @@ model User {
   items       VaultItem[]
   shares      Share[]
   sessions    Session[]
+  auditEvents AuditEvent[]
 }
 
 model VaultItem {
@@ -75,6 +76,22 @@ model VaultItemHistory {
   savedAt   DateTime @default(now())
 
   @@index([itemId, savedAt])
+}
+
+// Per-user audit trail: login, logout, session/allowlist changes, share
+// creation, etc. Meta is opaque JSON tuned to the specific event; nothing
+// sensitive is written here (no passwords, no ciphertext, no full IPs).
+model AuditEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     String
+  meta      Json?
+  ipHash    String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 // Server-side session record backing the JWT cookie. Signing out or "sign

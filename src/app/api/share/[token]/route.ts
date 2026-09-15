@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth/cookies';
+import { recordAudit } from '@/lib/auth/audit';
 
 type Params = { params: Promise<{ token: string }> };
 
@@ -81,7 +82,7 @@ export async function GET(_request: Request, { params }: Params) {
  * lives in the deleteMany filter so a missing / stranger-owned token returns
  * a plain 404.
  */
-export async function DELETE(_request: Request, { params }: Params) {
+export async function DELETE(request: Request, { params }: Params) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -93,5 +94,6 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (result.count === 0) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
+  recordAudit(session.userId, 'share.revoked', undefined, { request });
   return NextResponse.json({ ok: true });
 }

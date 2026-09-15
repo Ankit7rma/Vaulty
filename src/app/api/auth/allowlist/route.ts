@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth/cookies';
 import { ipFromRequest, normalizeAllowlist } from '@/lib/auth/ip-allowlist';
 import { logger } from '@/lib/logger';
+import { recordAudit } from '@/lib/auth/audit';
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -50,5 +51,11 @@ export async function PUT(request: Request) {
     userId: session.userId,
     count: normalized.length,
   });
+  recordAudit(
+    session.userId,
+    'allowlist.updated',
+    { count: normalized.length },
+    { request },
+  );
   return NextResponse.json({ entries: normalized });
 }

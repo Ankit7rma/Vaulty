@@ -5,6 +5,7 @@ import { hashAccountPassword, verifyAccountPassword } from '@/lib/auth/password'
 import { startSession } from '@/lib/auth/cookies';
 import { logger } from '@/lib/logger';
 import { rateLimit } from '@/lib/rate-limit';
+import { ipFromRequest, isIpAllowed } from '@/lib/auth/ip-allowlist';
 
 // Decoy hash computed once, used to keep login timing roughly constant whether
 // or not the email exists, so response time does not reveal registered emails.
@@ -77,6 +78,22 @@ export async function POST(request: Request) {
     if (!user || !passwordOk) {
       log.info('login.rejected', { reason: user ? 'bad_password' : 'no_user' });
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+    }
+
+    // IP allowlist check (opt-in per user). Runs after credential verification
+    // so a rejected IP still doesn't leak whether the password was correct.
+    if (user.ipAllowlist.length > 0) {
+      const ip = ipFromRequest(request);
+      if (!isIpAllowed(ip, user.ipAllowlist)) {
+        log.warn('login.ip_blocked', { userId: user.id });
+        return NextResponse.json(
+          {
+            error:
+              'Sign-in from this network is blocked by your IP allowlist.',
+          },
+          { status: 403 },
+        );
+      }
     }
 
     await startSession({ userId: user.id, email: user.email });

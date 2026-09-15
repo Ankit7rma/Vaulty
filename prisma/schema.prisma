@@ -34,6 +34,9 @@ model User {
   verifyIv    String?
   // Non-sensitive client preferences (auto-lock timeout, clipboard clear, etc.).
   settings    Json        @default("{}")
+  // Optional server-side login allowlist. Empty = accept any source IP.
+  // Entries are CIDR ranges (e.g. "203.0.113.4/32", "10.0.0.0/8").
+  ipAllowlist String[]    @default([])
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   items       VaultItem[]

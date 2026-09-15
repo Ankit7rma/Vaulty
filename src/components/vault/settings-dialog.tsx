@@ -2,7 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AlertTriangle, Loader2, MonitorSmartphone, Settings } from 'lucide-react';
+import {
+  AlertTriangle,
+  Loader2,
+  MonitorSmartphone,
+  Settings,
+  ShieldCheck,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,6 +25,7 @@ import { AUTO_LOCK_OPTIONS, CLIPBOARD_OPTIONS } from '@/lib/settings/settings';
 import { useVaultKey } from '@/lib/vault/vault-key-context';
 import { panicWipeLocal } from '@/lib/vault/panic-wipe';
 import { SessionsDialog } from './sessions-dialog';
+import { AllowlistDialog } from './allowlist-dialog';
 
 const SELECT_CLASS =
   'h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
@@ -28,6 +35,7 @@ export function SettingsDialog() {
   const [panicConfirmOpen, setPanicConfirmOpen] = useState(false);
   const [panicking, setPanicking] = useState(false);
   const [sessionsOpen, setSessionsOpen] = useState(false);
+  const [allowlistOpen, setAllowlistOpen] = useState(false);
   const router = useRouter();
   const { lock } = useVaultKey();
   const { autoLockMinutes, clipboardClearSeconds, showFavicons, update } =
@@ -122,6 +130,16 @@ export function SettingsDialog() {
             Active sessions
           </Button>
 
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full justify-start gap-2"
+            onClick={() => setAllowlistOpen(true)}
+          >
+            <ShieldCheck className="size-4" aria-hidden />
+            Login IP allowlist
+          </Button>
+
           <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
             <div className="mb-2 flex items-start gap-2">
               <AlertTriangle
@@ -152,6 +170,7 @@ export function SettingsDialog() {
       </DialogContent>
 
       <SessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
+      <AllowlistDialog open={allowlistOpen} onOpenChange={setAllowlistOpen} />
 
       <Dialog open={panicConfirmOpen} onOpenChange={setPanicConfirmOpen}>
         <DialogContent className="sm:max-w-sm">

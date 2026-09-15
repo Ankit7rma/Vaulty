@@ -46,6 +46,7 @@ const SEARCH_INPUT_ID = 'vaulty-search';
 interface VaultAppProps {
   onLock: () => void;
   onSignOut: () => void;
+  onPanicWipe: () => void;
 }
 
 export function VaultApp(props: VaultAppProps) {
@@ -60,6 +61,7 @@ function VaultAppInner({
   cryptoKey,
   onLock,
   onSignOut,
+  onPanicWipe,
 }: { cryptoKey: CryptoKey } & VaultAppProps) {
   const { items, loading, error, createItem, updateItem, deleteItem } =
     useVaultItems(cryptoKey);
@@ -485,6 +487,7 @@ function VaultAppInner({
         onNewNote={() => setEditing({ type: 'note' })}
         onLock={onLock}
         onSignOut={onSignOut}
+        onPanicWipe={onPanicWipe}
       />
 
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />

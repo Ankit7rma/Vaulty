@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
+  AlertTriangle,
   KeyRound,
   Lock,
   LogOut,
@@ -31,6 +32,7 @@ interface CommandPaletteProps {
   onNewNote: () => void;
   onLock: () => void;
   onSignOut: () => void;
+  onPanicWipe: () => void;
 }
 
 type ActionEntry = {
@@ -82,6 +84,7 @@ function PaletteBody({
   onNewNote,
   onLock,
   onSignOut,
+  onPanicWipe,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -157,8 +160,24 @@ function PaletteBody({
         icon: <LogOut className="size-4" aria-hidden />,
         run: onSignOut,
       },
+      {
+        kind: 'action',
+        id: 'panic-wipe',
+        label: 'Panic wipe',
+        hint: 'Lock + clear clipboard + sign out',
+        icon: <AlertTriangle className="size-4" aria-hidden />,
+        run: onPanicWipe,
+      },
     ];
-  }, [onNewLogin, onNewNote, onLock, onSignOut, themePreference, setThemePreference]);
+  }, [
+    onNewLogin,
+    onNewNote,
+    onLock,
+    onSignOut,
+    onPanicWipe,
+    themePreference,
+    setThemePreference,
+  ]);
 
   const q = query.trim().toLowerCase();
 

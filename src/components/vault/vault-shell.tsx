@@ -7,6 +7,7 @@ import { SignOutButton } from '@/components/auth/sign-out-button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { SettingsDialog } from './settings-dialog';
 import { VaultApp } from './vault-app';
+import { panicWipeLocal } from '@/lib/vault/panic-wipe';
 import { useVaultKey } from '@/lib/vault/vault-key-context';
 import { useSettings } from '@/lib/settings/settings-context';
 import { useAutoLock } from '@/lib/vault/use-auto-lock';
@@ -30,6 +31,13 @@ export function VaultShell({ email }: { email: string }) {
   const handleSignOut = useCallback(async () => {
     lock();
     await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    router.push('/login');
+    router.refresh();
+  }, [lock, router]);
+
+  const handlePanicWipe = useCallback(async () => {
+    lock();
+    await panicWipeLocal();
     router.push('/login');
     router.refresh();
   }, [lock, router]);
@@ -59,7 +67,11 @@ export function VaultShell({ email }: { email: string }) {
           <SignOutButton />
         </div>
       </header>
-      <VaultApp onLock={handleLock} onSignOut={handleSignOut} />
+      <VaultApp
+        onLock={handleLock}
+        onSignOut={handleSignOut}
+        onPanicWipe={handlePanicWipe}
+      />
     </div>
   );
 }

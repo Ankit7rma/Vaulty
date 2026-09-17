@@ -75,3 +75,27 @@ export const shareInputSchema = z.object({
 });
 
 export type ShareInput = z.infer<typeof shareInputSchema>;
+
+/**
+ * Rotate the master key: swap the KDF descriptor and, in the same
+ * transaction, replace every item's ciphertext with a version encrypted under
+ * the new key. All blobs stay opaque to the server.
+ */
+export const rewrappedItemSchema = z.object({
+  id: z.string().min(1).max(64),
+  cipher: z.string().min(1).max(5_000_000),
+  iv: z.string().min(1).max(1_000),
+});
+
+export const rotateMasterKeySchema = z.object({
+  // Account (not master) password. Proves the caller knows the identity
+  // credential in addition to holding an unlocked session.
+  password: z.string().min(1).max(200),
+  descriptor: onboardSchema,
+  // Every existing VaultItem must appear here, rewrapped. The server rejects
+  // the request if the id set does not match, so a mid-flight create on
+  // another device fails the rotation instead of orphaning an item.
+  items: z.array(rewrappedItemSchema).max(100_000),
+});
+
+export type RotateMasterKeyInput = z.infer<typeof rotateMasterKeySchema>;

@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   Fingerprint,
   History,
+  KeyRound,
   Loader2,
   MonitorSmartphone,
   Settings,
@@ -32,6 +33,7 @@ import { AllowlistDialog } from './allowlist-dialog';
 import { AuditLogDialog } from './audit-log-dialog';
 import { TotpSetupDialog, TotpDisableDialog } from './totp-setup-dialog';
 import { PasskeySetupDialog } from './passkey-setup-dialog';
+import { ChangeMasterPasswordDialog } from './change-master-password-dialog';
 
 const SELECT_CLASS =
   'h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
@@ -46,6 +48,7 @@ export function SettingsDialog() {
   const [totpSetupOpen, setTotpSetupOpen] = useState(false);
   const [totpDisableOpen, setTotpDisableOpen] = useState(false);
   const [passkeyOpen, setPasskeyOpen] = useState(false);
+  const [changeMasterOpen, setChangeMasterOpen] = useState(false);
   const [totpEnabled, setTotpEnabled] = useState(false);
   const [meTick, setMeTick] = useState(0);
 
@@ -190,6 +193,16 @@ export function SettingsDialog() {
             type="button"
             variant="outline"
             className="w-full justify-start gap-2"
+            onClick={() => setChangeMasterOpen(true)}
+          >
+            <KeyRound className="size-4" aria-hidden />
+            Change master password
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full justify-start gap-2"
             onClick={() =>
               totpEnabled ? setTotpDisableOpen(true) : setTotpSetupOpen(true)
             }
@@ -252,6 +265,10 @@ export function SettingsDialog() {
       <PasskeySetupDialog
         open={passkeyOpen}
         onOpenChange={setPasskeyOpen}
+      />
+      <ChangeMasterPasswordDialog
+        open={changeMasterOpen}
+        onOpenChange={setChangeMasterOpen}
       />
 
       <Dialog open={panicConfirmOpen} onOpenChange={setPanicConfirmOpen}>

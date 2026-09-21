@@ -58,9 +58,11 @@ model User {
   sessions    Session[]
   auditEvents AuditEvent[]
   passkeys    PasskeyCredential[]
-  vaultsOwned SharedVault[]        @relation("SharedVaultOwner")
-  memberships SharedVaultMembership[]
-  invitesSent SharedVaultInvite[]  @relation("SharedVaultInviteSender")
+  vaultsOwned     SharedVault[]        @relation("SharedVaultOwner")
+  memberships     SharedVaultMembership[]
+  invitesSent     SharedVaultInvite[]  @relation("SharedVaultInviteSender")
+  linksSent       SharedVaultInviteLink[] @relation("SharedVaultLinkSender")
+  pendingWraps    SharedVaultPendingWrap[]
 }
 
 // WebAuthn credential registered by a user. `publicKey` and `counter` are the
@@ -211,9 +213,11 @@ model SharedVault {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships SharedVaultMembership[]
-  invites     SharedVaultInvite[]
-  items       VaultItem[]
+  memberships  SharedVaultMembership[]
+  invites      SharedVaultInvite[]
+  inviteLinks  SharedVaultInviteLink[]
+  pendingWraps SharedVaultPendingWrap[]
+  items        VaultItem[]
 
   @@index([ownerId])
 }
@@ -236,6 +240,55 @@ model SharedVaultMembership {
   role          SharedVaultRole
   // Base64 RSA-OAEP ciphertext of the raw 32-byte vault key.
   wrappedKey    String
+  createdAt     DateTime @default(now())
+
+  @@unique([sharedVaultId, userId])
+  @@index([userId])
+}
+
+// A signed invite link. Alternative to the email-first flow: owner creates a
+// link that carries the vault, role, and expiry. Anyone who follows the link
+// and is signed in can claim it, which produces a SharedVaultPendingWrap row
+// waiting on the owner to complete the wrap against the recipient's public
+// key. This removes the "recipient must have a keypair before you invite
+// them" constraint of email-based invites.
+model SharedVaultInviteLink {
+  id            String   @id @default(cuid())
+  sharedVaultId String
+  sharedVault   SharedVault @relation(fields: [sharedVaultId], references: [id], onDelete: Cascade)
+  // Random opaque token embedded in the URL. Not a JWT: rows are the source
+  // of truth so revoke = delete row and there's no need to blacklist a
+  // signature.
+  token         String   @unique
+  role          SharedVaultRole
+  invitedBy     String
+  sender        User     @relation("SharedVaultLinkSender", fields: [invitedBy], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+  maxUses       Int      @default(1)
+  useCount      Int      @default(0)
+  claims        SharedVaultPendingWrap[] @relation("SharedVaultPendingWrapSource")
+
+  @@index([sharedVaultId])
+  @@index([expiresAt])
+}
+
+// A claim on an invite link: the recipient has followed the link and signed
+// in but the owner has not yet wrapped the vault key against their public
+// key. Owner completes the wrap through /api/vaults/[id]/pending-wraps/...
+model SharedVaultPendingWrap {
+  id            String   @id @default(cuid())
+  sharedVaultId String
+  sharedVault   SharedVault @relation(fields: [sharedVaultId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role          SharedVaultRole
+  // Which link produced this claim. Kept for audit + so the owner can see
+  // where a stranger came from. Null if the link was later revoked or
+  // deleted (SET NULL, not cascade — the claim stays valid until the owner
+  // completes or denies it).
+  sourceLinkId  String?
+  sourceLink    SharedVaultInviteLink? @relation("SharedVaultPendingWrapSource", fields: [sourceLinkId], references: [id], onDelete: SetNull)
   createdAt     DateTime @default(now())
 
   @@unique([sharedVaultId, userId])

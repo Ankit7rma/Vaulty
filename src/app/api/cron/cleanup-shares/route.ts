@@ -31,20 +31,25 @@ export async function GET(request: Request) {
 
   try {
     const now = new Date();
-    const [shares, sessions, invites] = await Promise.all([
+    const [shares, sessions, invites, inviteLinks] = await Promise.all([
       prisma.share.deleteMany({ where: { expiresAt: { lt: now } } }),
       prisma.session.deleteMany({ where: { expiresAt: { lt: now } } }),
       prisma.sharedVaultInvite.deleteMany({ where: { expiresAt: { lt: now } } }),
+      prisma.sharedVaultInviteLink.deleteMany({
+        where: { expiresAt: { lt: now } },
+      }),
     ]);
     log.info('cron.cleanup.success', {
       deletedShares: shares.count,
       deletedSessions: sessions.count,
       deletedInvites: invites.count,
+      deletedInviteLinks: inviteLinks.count,
     });
     return NextResponse.json({
       deletedShares: shares.count,
       deletedSessions: sessions.count,
       deletedInvites: invites.count,
+      deletedInviteLinks: inviteLinks.count,
     });
   } catch (error) {
     log.error('cron.cleanup.error', {

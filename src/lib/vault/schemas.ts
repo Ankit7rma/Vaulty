@@ -159,3 +159,25 @@ export const rotateOnRemovalSchema = z.object({
 });
 
 export type RotateOnRemovalInput = z.infer<typeof rotateOnRemovalSchema>;
+
+/**
+ * Creating an invite link: role + expiry + optional multi-use count. The
+ * server generates the token itself, so the client only picks the shape of
+ * the invitation, never the URL.
+ */
+export const createInviteLinkSchema = z.object({
+  role: z.enum(['editor', 'reader']),
+  expiresInHours: z.number().int().min(1).max(30 * 24).optional(),
+  maxUses: z.number().int().min(1).max(100).optional(),
+});
+export type CreateInviteLinkInput = z.infer<typeof createInviteLinkSchema>;
+
+/**
+ * Completing a pending wrap: owner supplies the vault key wrapped with the
+ * claimant's public key. Server verifies the pending-wrap exists for this
+ * vault, atomically creates a membership, and deletes the pending row.
+ */
+export const completePendingWrapSchema = z.object({
+  wrappedKey: z.string().min(1).max(10_000),
+});
+export type CompletePendingWrapInput = z.infer<typeof completePendingWrapSchema>;

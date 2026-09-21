@@ -112,3 +112,20 @@ export const createSharedVaultSchema = z.object({
 });
 
 export type CreateSharedVaultInput = z.infer<typeof createSharedVaultSchema>;
+
+/** Roles for shared-vault memberships and invites. Matches the Prisma enum. */
+export const sharedVaultRoleSchema = z.enum(['owner', 'editor', 'reader']);
+export type SharedVaultRole = z.infer<typeof sharedVaultRoleSchema>;
+
+/**
+ * Creating an invitation: recipient email, target role, and the vault key
+ * already wrapped with the recipient's public key. Owner cannot invite as
+ * "owner"; ownership transfer is a separate flow.
+ */
+export const createInviteSchema = z.object({
+  email: z.string().min(3).max(320).email(),
+  role: z.enum(['editor', 'reader']),
+  wrappedKey: z.string().min(1).max(10_000),
+  expiresInHours: z.number().int().min(1).max(30 * 24).optional(),
+});
+export type CreateInviteInput = z.infer<typeof createInviteSchema>;

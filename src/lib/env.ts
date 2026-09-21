@@ -17,6 +17,9 @@ const schema = z.object({
     .string()
     .min(32, 'JWT_SECRET must be at least 32 characters (generate with `openssl rand -base64 48`)'),
   SESSION_TTL_HOURS: z.coerce.number().int().positive().default(12),
+  // Access-token TTL. Kept short so a stolen JWT expires within minutes; the
+  // long-lived refresh cookie mints new access tokens for legitimate users.
+  ACCESS_TTL_MINUTES: z.coerce.number().int().positive().max(60 * 24).default(15),
   // Public origin used for canonical URLs, sitemap entries, and share links.
   APP_URL: z.string().url().default('http://localhost:3000'),
   // Shared secret Vercel Cron uses to authenticate scheduled invocations.

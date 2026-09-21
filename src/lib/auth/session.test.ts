@@ -24,6 +24,7 @@ describe('session tokens', () => {
       userId: 'u1',
       email: 'a@b.com',
       jti: JTI,
+      kind: 'access',
     })
   })
 

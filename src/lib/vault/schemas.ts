@@ -99,3 +99,16 @@ export const rotateMasterKeySchema = z.object({
 });
 
 export type RotateMasterKeyInput = z.infer<typeof rotateMasterKeySchema>;
+
+/**
+ * Validation for creating a shared vault. The creator provides an already-
+ * encrypted display name (only members can decrypt) and the raw AES-GCM vault
+ * key wrapped with their own RSA public key (so they can unwrap it later).
+ */
+export const createSharedVaultSchema = z.object({
+  name: z.string().min(1).max(10_000),
+  nameIv: z.string().min(1).max(200),
+  wrappedKey: z.string().min(1).max(10_000),
+});
+
+export type CreateSharedVaultInput = z.infer<typeof createSharedVaultSchema>;

@@ -6,6 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useVaultKey } from '@/lib/vault/vault-key-context';
 import { useVaultItems } from '@/lib/vault/use-vault-items';
+import type { VaultScope } from './vault-switcher';
+import type {
+  SharedVaultSummary,
+  UseSharedVaults,
+} from '@/lib/vault/use-shared-vaults';
 import {
   collectTags,
   filterItems,
@@ -44,6 +49,8 @@ import {
 const SEARCH_INPUT_ID = 'vaulty-search';
 
 interface VaultAppProps {
+  scope: VaultScope;
+  sharedVaults: UseSharedVaults;
   onLock: () => void;
   onSignOut: () => void;
   onPanicWipe: () => void;
@@ -51,20 +58,69 @@ interface VaultAppProps {
 
 export function VaultApp(props: VaultAppProps) {
   const { key } = useVaultKey();
-  // The shell guarantees the vault is unlocked before rendering this; the guard
-  // is here only so the key is non-null for the inner component.
+  const [sharedKey, setSharedKey] = useState<CryptoKey | null>(null);
+  const [sharedVault, setSharedVault] = useState<SharedVaultSummary | null>(null);
+
+  // When scope is a shared vault, unwrap its symmetric key with the caller's
+  // private key. Cached inside useSharedVaults so switching between vaults
+  // that have already been unlocked once is instant.
+  const scopeId = props.scope.kind === 'shared' ? props.scope.id : null;
+  const targetVault = scopeId
+    ? (props.sharedVaults.vaults.find((v) => v.id === scopeId) ?? null)
+    : null;
+  const getVaultKey = props.sharedVaults.getVaultKey;
+  useEffect(() => {
+    if (!targetVault) return;
+    let cancelled = false;
+    getVaultKey(targetVault)
+      .then((k) => {
+        if (cancelled) return;
+        setSharedKey(k);
+        setSharedVault(targetVault);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [targetVault, getVaultKey]);
+
   if (!key) return null;
+  if (props.scope.kind === 'shared') {
+    // Guard against a stale unwrap: if the effect above hasn't caught up with
+    // the current scope yet, sharedVault.id will lag behind, so show loading.
+    if (!sharedKey || !sharedVault || sharedVault.id !== props.scope.id) {
+      return (
+        <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-8 text-sm text-muted-foreground">
+          Unlocking shared vault...
+        </main>
+      );
+    }
+    return (
+      <VaultAppInner
+        cryptoKey={sharedKey}
+        sharedVaultId={sharedVault.id}
+        writable={sharedVault.role !== 'reader'}
+        {...props}
+      />
+    );
+  }
   return <VaultAppInner cryptoKey={key} {...props} />;
 }
 
 function VaultAppInner({
   cryptoKey,
+  sharedVaultId,
+  writable = true,
   onLock,
   onSignOut,
   onPanicWipe,
-}: { cryptoKey: CryptoKey } & VaultAppProps) {
+}: {
+  cryptoKey: CryptoKey;
+  sharedVaultId?: string;
+  writable?: boolean;
+} & VaultAppProps) {
   const { items, loading, error, createItem, updateItem, deleteItem } =
-    useVaultItems(cryptoKey);
+    useVaultItems(cryptoKey, sharedVaultId);
   const [editing, setEditing] = useState<EditingItem | null>(null);
   const [query, setQuery] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -343,18 +399,22 @@ function VaultAppInner({
               >
                 <Share2 />
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => setEditing({ type: 'login' })}
-              >
-                <KeyRound /> Add login
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setEditing({ type: 'note' })}
-              >
-                <StickyNote /> Add note
-              </Button>
+              {writable && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditing({ type: 'login' })}
+                  >
+                    <KeyRound /> Add login
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setEditing({ type: 'note' })}
+                  >
+                    <StickyNote /> Add note
+                  </Button>
+                </>
+              )}
             </>
           ) : (
             <Button variant="outline" onClick={() => setView('vault')}>

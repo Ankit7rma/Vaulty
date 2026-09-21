@@ -26,21 +26,31 @@ function byUpdatedDesc(items: VaultItem[]): VaultItem[] {
 
 /**
  * Loads the encrypted item records for the current user and decrypts them in
- * memory with the vault key. All CRUD encrypts client-side before sending.
+ * memory with the given key. All CRUD encrypts client-side before sending.
+ *
+ * When `sharedVaultId` is set, the hook hits /api/vaults/[id]/items instead
+ * of the personal /api/vault/items and uses the shared vault's symmetric
+ * key (which the caller must have already unwrapped). Otherwise the caller
+ * passes their personal master-derived vault key.
  */
-export function useVaultItems(key: CryptoKey): UseVaultItems {
+export function useVaultItems(
+  key: CryptoKey,
+  sharedVaultId?: string,
+): UseVaultItems {
   const [items, setItems] = useState<VaultItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch + decrypt with no state writes, so it can run from the mount effect
-  // (which must not setState synchronously) and from the manual reload alike.
+  const baseUrl = sharedVaultId
+    ? `/api/vaults/${sharedVaultId}/items`
+    : '/api/vault/items';
+
   const fetchItems = useCallback(async (): Promise<VaultItem[]> => {
-    const res = await fetch('/api/vault/items');
+    const res = await fetch(baseUrl);
     if (!res.ok) throw new Error('load failed');
     const data = (await res.json()) as { items: ItemRecord[] };
     return Promise.all(data.items.map((record) => decryptRecord(key, record)));
-  }, [key]);
+  }, [key, baseUrl]);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,7 +85,7 @@ export function useVaultItems(key: CryptoKey): UseVaultItems {
   const createItem = useCallback(
     async (type: ItemType, fields: ItemFields) => {
       const blob = await encryptFields(key, fields);
-      const res = await fetch('/api/vault/items', {
+      const res = await fetch(baseUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, ...blob }),
@@ -85,13 +95,13 @@ export function useVaultItems(key: CryptoKey): UseVaultItems {
       const decrypted = await decryptRecord(key, item);
       setItems((prev) => [decrypted, ...prev]);
     },
-    [key],
+    [key, baseUrl],
   );
 
   const updateItem = useCallback(
     async (id: string, type: ItemType, fields: ItemFields) => {
       const blob = await encryptFields(key, fields);
-      const res = await fetch(`/api/vault/items/${id}`, {
+      const res = await fetch(`${baseUrl}/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type, ...blob }),
@@ -103,14 +113,17 @@ export function useVaultItems(key: CryptoKey): UseVaultItems {
         byUpdatedDesc([decrypted, ...prev.filter((i) => i.id !== id)]),
       );
     },
-    [key],
+    [key, baseUrl],
   );
 
-  const deleteItem = useCallback(async (id: string) => {
-    const res = await fetch(`/api/vault/items/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('delete failed');
-    setItems((prev) => prev.filter((i) => i.id !== id));
-  }, []);
+  const deleteItem = useCallback(
+    async (id: string) => {
+      const res = await fetch(`${baseUrl}/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('delete failed');
+      setItems((prev) => prev.filter((i) => i.id !== id));
+    },
+    [baseUrl],
+  );
 
   return { items, loading, error, createItem, updateItem, deleteItem, reload };
 }

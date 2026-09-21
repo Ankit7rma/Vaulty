@@ -129,3 +129,33 @@ export const createInviteSchema = z.object({
   expiresInHours: z.number().int().min(1).max(30 * 24).optional(),
 });
 export type CreateInviteInput = z.infer<typeof createInviteSchema>;
+
+/**
+ * Remove-a-member payload: the client has already generated a fresh vault
+ * key, wrapped it with every remaining member's public key, and re-encrypted
+ * every item under the new key. The server drops the target membership,
+ * updates each remaining member's wrappedKey, replaces every item's
+ * ciphertext, and clears history in one transaction.
+ */
+export const rotateOnRemovalSchema = z.object({
+  wrappedKeys: z
+    .array(
+      z.object({
+        userId: z.string().min(1).max(64),
+        wrappedKey: z.string().min(1).max(10_000),
+      }),
+    )
+    .min(1)
+    .max(1000),
+  items: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(64),
+        cipher: z.string().min(1).max(5_000_000),
+        iv: z.string().min(1).max(1_000),
+      }),
+    )
+    .max(100_000),
+});
+
+export type RotateOnRemovalInput = z.infer<typeof rotateOnRemovalSchema>;

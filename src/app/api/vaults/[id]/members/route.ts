@@ -24,7 +24,9 @@ export async function GET(_request: Request, { params }: Params) {
       id: true,
       role: true,
       createdAt: true,
-      user: { select: { id: true, email: true } },
+      user: {
+        select: { id: true, email: true, publicKey: true, keypairAlg: true },
+      },
     },
   });
   return NextResponse.json({ members });

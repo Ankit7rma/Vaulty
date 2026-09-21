@@ -41,6 +41,16 @@ model User {
   totpSecret  String?
   // True once the user has confirmed enrollment with a valid code.
   totpEnabled Boolean     @default(false)
+  // Per-user RSA-OAEP-4096 keypair used to wrap shared-vault keys. The
+  // public key is safe to expose (other users need it to invite this user);
+  // the private key is stored ONLY as ciphertext under the master key, so
+  // the server can never decrypt anything it wraps. Lazy: generated the
+  // first time the user touches a shared vault, so existing accounts are
+  // unaffected until they opt in.
+  publicKey            String? // base64 SPKI
+  wrappedPrivateKey    String? // base64 AES-GCM ciphertext of the PKCS8 key
+  wrappedPrivateKeyIv  String? // base64 IV for wrappedPrivateKey
+  keypairAlg           String? // e.g. "rsa-oaep-4096"
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   items       VaultItem[]

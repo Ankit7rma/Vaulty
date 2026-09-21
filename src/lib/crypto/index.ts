@@ -41,3 +41,16 @@ export {
   type PronounceableOptions,
 } from './password';
 export { createVerifyBlob, verifyKey, VERIFY_MARKER } from './verify';
+export {
+  KEYPAIR_ALG,
+  type KeypairAlg,
+  generateWrappingKeypair,
+  exportPublicKey,
+  importPublicKey,
+  wrapPrivateKey,
+  unwrapPrivateKey,
+  rsaEncrypt,
+  rsaDecrypt,
+  generateSymmetricVaultKey,
+  importSymmetricVaultKey,
+} from './keypair';

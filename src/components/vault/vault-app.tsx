@@ -36,6 +36,7 @@ import { OnboardingTour, useTourCompleted } from './onboarding-tour';
 import { ExportDialog } from './export-dialog';
 import { ImportDialog } from './import-dialog';
 import { SentSharesDialog } from './sent-shares-dialog';
+import { MembersDialog } from './members-dialog';
 import { normalizeTags } from '@/lib/vault/items';
 import {
   Download,
@@ -44,6 +45,7 @@ import {
   ShieldCheck,
   Sparkles,
   Upload,
+  Users,
 } from 'lucide-react';
 
 const SEARCH_INPUT_ID = 'vaulty-search';
@@ -99,6 +101,7 @@ export function VaultApp(props: VaultAppProps) {
       <VaultAppInner
         cryptoKey={sharedKey}
         sharedVaultId={sharedVault.id}
+        sharedVault={sharedVault}
         writable={sharedVault.role !== 'reader'}
         {...props}
       />
@@ -110,15 +113,19 @@ export function VaultApp(props: VaultAppProps) {
 function VaultAppInner({
   cryptoKey,
   sharedVaultId,
+  sharedVault,
   writable = true,
+  sharedVaults,
   onLock,
   onSignOut,
   onPanicWipe,
 }: {
   cryptoKey: CryptoKey;
   sharedVaultId?: string;
+  sharedVault?: SharedVaultSummary;
   writable?: boolean;
 } & VaultAppProps) {
+  const [membersOpen, setMembersOpen] = useState(false);
   const { items, loading, error, createItem, updateItem, deleteItem } =
     useVaultItems(cryptoKey, sharedVaultId);
   const [editing, setEditing] = useState<EditingItem | null>(null);
@@ -399,6 +406,17 @@ function VaultAppInner({
               >
                 <Share2 />
               </Button>
+              {sharedVault && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setMembersOpen(true)}
+                  aria-label="Members"
+                  title="Members"
+                >
+                  <Users />
+                </Button>
+              )}
               {writable && (
                 <>
                   <Button
@@ -610,6 +628,15 @@ function VaultAppInner({
       />
 
       <SentSharesDialog open={sharesOpen} onOpenChange={setSharesOpen} />
+
+      {sharedVault && sharedVaults.keypair && (
+        <MembersDialog
+          open={membersOpen}
+          onOpenChange={setMembersOpen}
+          vault={sharedVault}
+          privateKey={sharedVaults.keypair.privateKey}
+        />
+      )}
     </main>
   );
 }

@@ -108,7 +108,9 @@ model VaultItem {
 
 // Prior versions of an item, snapshotted every time it is updated. Stores the
 // same encrypted cipher/iv shape as VaultItem, so the server still never sees
-// plaintext. Bounded by the API layer (recent-N per item) to cap growth.
+// plaintext. Bounded by the API layer (recent-N unpinned per item) to cap
+// growth; pinned rows are the user's manually-saved checkpoints and are
+// never auto-pruned.
 model VaultItemHistory {
   id        String   @id @default(cuid())
   itemId    String
@@ -117,6 +119,15 @@ model VaultItemHistory {
   cipher    String
   iv        String
   savedAt   DateTime @default(now())
+  // True for user-initiated snapshots ("Save version" button). False (the
+  // default) for auto snapshots taken on every save. Prune logic skips
+  // pinned rows so a checkpoint stays around across many auto edits.
+  pinned    Boolean  @default(false)
+  // Optional user label for the checkpoint (e.g. "before rotating"). Stored
+  // as AES-GCM ciphertext under the vault key so the server does not learn
+  // what the user called it.
+  label     String?
+  labelIv   String?
 
   @@index([itemId, savedAt])
 }

@@ -74,7 +74,7 @@ export async function PUT(request: Request, { params }: Params) {
 
     const olderIds = (
       await tx.vaultItemHistory.findMany({
-        where: { itemId: current.id },
+        where: { itemId: current.id, pinned: false },
         orderBy: { savedAt: 'desc' },
         skip: HISTORY_KEEP,
         select: { id: true },

@@ -58,11 +58,13 @@ export async function PUT(request: Request, { params }: Params) {
       },
     });
 
-    // Prune to the most recent HISTORY_KEEP entries. Simple two-query prune
-    // is fine here (10 rows per item cap); a windowed DELETE would need raw SQL.
+    // Prune to the most recent HISTORY_KEEP UNPINNED entries. Pinned rows
+    // are manual checkpoints and stay across many auto edits. Simple two-
+    // query prune is fine (10 rows per item cap); a windowed DELETE would
+    // need raw SQL.
     const olderIds = (
       await tx.vaultItemHistory.findMany({
-        where: { itemId: current.id },
+        where: { itemId: current.id, pinned: false },
         orderBy: { savedAt: 'desc' },
         skip: HISTORY_KEEP,
         select: { id: true },
